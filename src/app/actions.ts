@@ -17,7 +17,9 @@ import {
   markTutorialCompleted,
   saveActiveRun,
   saveProfile,
+  type ModelMap,
 } from '../store/cache';
+import { loadLevelLocalModels } from '../store/localModels';
 import {
   clearKeys,
   hasDeepSeekKey,
@@ -155,10 +157,21 @@ function leaveTutorialIfNeeded(state: AppState): PlayerState | null {
   return restored;
 }
 
+/** 合并"预置模型（local）+ IndexedDB 缓存"；同名校验以缓存为准（真实生成的优先级更高）。 */
+async function resolveModelsForLevel(level: LevelJson): Promise<ModelMap> {
+  const cached = await loadCachedModels(level, gameCache);
+  const local = level.kind === 'generated' ? {} : await loadLevelLocalModels(level);
+  const models: ModelMap = { ...local };
+  for (const [itemId, blob] of Object.entries(cached)) {
+    if (blob) models[itemId] = blob;
+  }
+  return models;
+}
+
 export function hydrateActiveModels(): void {
   const { level } = store.get();
   if (!level) return;
-  void loadCachedModels(level, gameCache).then((models) => {
+  void resolveModelsForLevel(level).then((models) => {
     const current = store.get();
     if (current.level?.id !== level.id) return;
     store.set({ models });
@@ -362,6 +375,9 @@ export function startTutorial(): void {
     demoMode: false,
     resumeAvailable: false,
     attempts: 1,
+  });
+  void resolveModelsForLevel(level).then((models) => {
+    if (store.get().level?.id === level.id) store.set({ models });
   });
 }
 
@@ -604,7 +620,7 @@ export function startDemoLevel(): void {
     notice: { kind: 'info', text: '演示关卡：不调用任何 API，3D 用程序化占位模型。' },
   });
   persistActiveRun();
-  void loadCachedModels(level, gameCache).then((models) => {
+  void resolveModelsForLevel(level).then((models) => {
     if (store.get().level?.id === level.id) store.set({ models });
   });
 }

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as actions from '../src/app/actions';
 import { store } from '../src/app/store';
 import { loadProfile, saveProfile } from '../src/store/cache';
@@ -8,6 +8,11 @@ const sentinel = { funds: 777, xp: 500, level: 2 };
 
 function reset(): void {
   localStorage.clear();
+  // 教学关会尝试读取 public/models/manifest.json；测试里直接 404，避免真实网络请求。
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response('', { status: 404 })),
+  );
   saveProfile(sentinel);
   store.set({
     ...actions.bootstrapState(),
@@ -17,6 +22,10 @@ function reset(): void {
 
 describe('教学关卡：不碰真实存档、不调模型', () => {
   beforeEach(reset);
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
   it('从开始页进入教学 → 走完六步 → 回到开始页后存档原样', async () => {
     actions.startTutorial();

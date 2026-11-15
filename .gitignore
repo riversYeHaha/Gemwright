@@ -32,3 +32,6 @@ tmp/
 # 本地端到端验证产物（截图 / 脚本）
 .verify/
 .dev-server.log
+
+# 预置 3D 模型（由 scripts/init_models.py 生成，不入库）
+public/models/

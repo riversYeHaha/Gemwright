@@ -60,6 +60,15 @@ export function renderInspect(state: AppState): HTMLElement {
 
   const creator = level.creators.find((entry) => entry.id === stall.creatorId);
   const runtime = session.itemOf(stall.itemId);
+  const blob = state.models[stall.itemId] ?? null;
+  const presetLevel = level.kind === 'tutorial' || level.kind === 'demo';
+  const modelHint = presetLevel
+    ? blob
+      ? '本地预置模型 · 由 scripts/init_models.py 生成'
+      : '程序化占位模型 · 运行 python3 scripts/init_models.py 后可加载真实 GLB'
+    : blob
+      ? 'Lux3D 实时生成模型'
+      : '占位模型 · Lux3D 未配置或生成失败';
   const fog = h('div', { class: 'viewer-fog' });
   const loading = h('p', { class: 'viewer__loading', text: '开箱中…' });
   const viewerHost = h('div', { class: 'viewer' }, fog, loading);
@@ -91,6 +100,7 @@ export function renderInspect(state: AppState): HTMLElement {
         class: 'viewer__hint',
         text: '开箱雾散去后，请自己数一数、看一看——规范不多不少，多一也是仿。',
       }),
+      h('p', { class: 'viewer__hint viewer__hint--model', text: modelHint }),
     ),
     h(
       'div',

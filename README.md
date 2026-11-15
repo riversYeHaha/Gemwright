@@ -6,7 +6,8 @@
 
 > **你以为你在砍价，其实你在鉴定。**
 
-- 当前阶段：**开始页 + 教学关卡 + 完整闭环**。零 Key 也能玩（教学 / 演示关卡），填入 Key 走真实 AI 链路。
+- 当前阶段：**开始页 + 教学关卡 + 完整闭环**。零 Key 也能玩（教学 / 演示关卡）；填入 Key 后先跑初始化脚本生成预置 3D 模型。
+- **预置模型不入库**：仓库只带生成脚本与提示词，模型由玩家用自己的 Lux3D Key 生成到 `public/models/`（已在 `.gitignore`）。
 - 权威方案：[docs/珍宝猎人-方案v8-MVP.md](docs/珍宝猎人-方案v8-MVP.md)（v8.1）
 - 开发指南：[docs/开发指南.md](docs/开发指南.md)
 
@@ -32,20 +33,21 @@
 
 | 模式 | 需要 Key | 内容 | 消耗 |
 |---|---|---|---|
-| **教学关卡** | ❌ | 预置故事＋一真一假两件珍宝，6 步目标引导，剧本化精灵 | 0 |
-| **演示关卡** | ❌ | 完整 5 件珍宝的集市，3D 用占位模型 | 0 |
-| **正式关卡** | DeepSeek + Lux3D | LLM 现场生成世界 + 5 件真实 GLB | ≈65 积分/关 |
+| **教学关卡** | ❌（可选：预置模型脚本） | 预置故事＋一真一假两件珍宝，6 步目标引导，剧本化精灵；跑过脚本就加载真实 GLB | 0 |
+| **演示关卡** | ❌（可选：预置模型脚本） | 完整 5 件珍宝的集市；跑过脚本就加载真实 GLB，否则占位模型 | 0 |
+| **正式关卡** | DeepSeek + Lux3D | LLM 现场生成世界 + 5 件实时 GLB | ≈65 积分/关 |
 
 - **开始页**：继续上一局（刷新后续玩）/ 开始游戏 / 教学关卡 / 演示关卡（无 Key 时）/ 设置；Key 状态与教学进度一眼可见。
 - **刷新续玩**：正式关与演示关的运行时（额度、报价、成交、精灵日志、阶段）实时落 localStorage，刷新后开始页出现「继续上一局」，回到原处继续。
 - **3D 布展可控**：Lux3D 任务失败自动重试 1 次（task-failed / timeout），可随时「停止布展」取消轮询与下载；three.js 已拆成独立 chunk，按需加载。
+- **预置模型**：教学 / 演示关的 3D 不再只能看占位——运行 `scripts/init_models.py` 生成 7 件 GLB，网页按 `manifest.json` 自动加载；没有生成时安静回退占位模型。
 
 ## 教学关卡（MVP 保底）
 
 **不调用任何模型**：没有 DeepSeek、没有 Lux3D，断网也能玩，适合评委 3 分钟看懂玩法。
 
 - **预生成故事**：烬岩坊市一年只开一夜；老锻翁·格罗姆只放出两枚星核，一枚亲手锻的、一枚学徒仿的，署名却都是他。
-- **一真一假**：真品 7 颗星砂；仿品少一颗（6 颗）。3D 由程序化占位模型生成，所有星砂都画在本体前面，**数得清**。
+- **一真一假**：真品 7 颗星砂；仿品少一颗（6 颗）。3D 默认用程序化占位模型（所有星砂都画在本体前面，**数得清**）；跑过预置模型脚本后自动换成真实 GLB。
 - **六步目标**（全部由运行时状态推导，不埋点）：开市 → 逐件验货（2/2）→ 问一次精灵 → 买下两件 → 收摊回基地 → 揭晓并结算。
 - **剧本化精灵**：5 个预设问题（手艺规矩 / 坊市行情 / 仿作传闻 / 价格 / "哪枚是真的"），照常消耗询问额度；最后一个会被防火墙挡回，让玩家亲眼看到"它真的不知道"。
 - **不碰真实存档**：教学局用独立的 1000 资金 / Lv.1，结算不写玩家存档、不写续玩快照；退出后恢复原存档。
@@ -99,7 +101,7 @@
 | 3D | **Three.js 0.187**（OrbitControls + GLTFLoader），**动态 import 成独立 chunk** | 首屏不背 3D 引擎：主包 ~62KB gzip，3D chunk 按需加载 |
 | 校验 | **Zod 4** | schema 失败信息直接回灌 LLM 做定向重试 |
 | 存储 | **localStorage + IndexedDB** | Key / 存档 / 续玩快照走 localStorage；关卡 JSON 与 GLB blob 走 IndexedDB |
-| 测试 | **Vitest 5 + happy-dom** | 14 个测试文件 / 73 个用例 |
+| 测试 | **Vitest 5 + happy-dom** | 15 个测试文件 / 78 个用例 |
 | 工程化 | **ESLint 10（flat config）+ Prettier 3** | `npm run verify` 串起 typecheck → lint → test → build |
 | 样式 | **原生 CSS + 设计 token** | 按 token / base / 组件 / 屏幕分层，无 Tailwind 构建链 |
 
@@ -114,6 +116,9 @@ Gemwright/
 ├── vitest.config.ts              happy-dom
 ├── eslint.config.js / .prettierrc.json
 ├── public/favicon.svg
+├── public/models/               ★ 预置 GLB + manifest（脚本生成，.gitignore 忽略）
+├── scripts/
+│   └── init_models.py           预置模型生成脚本（stdlib，无第三方依赖，内置 prompt）
 ├── src/
 │   ├── main.ts                   读设置 / 续玩快照 → 挂载应用；DEV 暴露 window.gemwright
 │   ├── app/
@@ -141,6 +146,7 @@ Gemwright/
 │   ├── render/viewer.ts          Three.js 检视：GLB / 占位模型 / 开箱雾（异步 chunk）
 │   ├── store/
 │   │   ├── cache.ts              IndexedDB + 玩家存档 + 续玩快照 + 教学通关标记
+│   │   ├── localModels.ts        预置 manifest / GLB 加载（未生成则回退 null）
 │   │   └── settings.ts           Key / 地区 / 快速议价
 │   ├── styles/                   tokens / base / components / screens / landing
 │   ├── types/level.ts            协议 + 运行时 + 快照 + 结算 + 错误
@@ -149,7 +155,7 @@ Gemwright/
 │   │   ├── components.ts         顶栏 / 面板 / 徽章 / 特征表 / 布展进度
 │   │   ├── tutorial.ts           教学六步引导（复用组件）
 │   │   └── screens/              start / settings / travel / market / inspect / base
-├── tests/                        14 个测试文件 / 73 个用例
+├── tests/                        15 个测试文件 / 78 个用例
 └── docs/
     ├── 珍宝猎人-方案v8-MVP.md     权威方案 v8.1
     ├── 开发指南.md                模块职责、数据流、不变量、扩展方式
@@ -175,6 +181,14 @@ LevelJson ──(只取 world / creators 公开档案 / 算子类型)──→ F
                      ✗ 不含 stalls（真伪 / 特征 / 任何价格）
 ```
 
+教学 / 演示关不走上图（不调模型），而是：
+
+```
+public/models/manifest.json → loadLocalModel() → GLB Blob → TreasureViewer
+                                   ↓ 缺失 / 404
+                            traits 程序化占位模型
+```
+
 ## 快速开始
 
 要求：Node ≥ 22。
@@ -183,15 +197,43 @@ LevelJson ──(只取 world / creators 公开档案 / 算子类型)──→ F
 npm install
 npm run dev         # http://127.0.0.1:5173
 npm run build       # 产物 dist/，相对路径，可直接静态托管
-npm run test        # Vitest：73 个用例
+npm run test        # Vitest：78 个用例
 npm run lint        # ESLint（flat config）
 npm run format      # Prettier 写回 src/tests/配置
 npm run verify      # typecheck + lint + test + build（提交前一键）
+npm run models      # 生成教学/演示的预置 3D 模型（需 Lux3D Key）
+npm run models:dry  # 只预览 prompt / 输出路径，不调用 API
 ```
+
+### 预置 3D 模型（P0 第一步，建议正式开玩前执行）
+
+仓库**不包含**任何模型文件。教学 2 件 + 演示 5 件的预置 GLB 由脚本用你自己的 Lux3D Key 生成：
+
+```bash
+# 1) 预览：只打印 prompt / 输出路径，不调用 API
+npm run models:dry
+
+# 2) 配 Key（环境变量 / .env.local / --key 三选一）
+export LUX3D_API_KEY=你的密钥
+# 或：echo "LUX3D_API_KEY=你的密钥" >> .env.local
+
+# 3) 生成（默认国内端点；7 件 ≈ 91 积分，免费档并发 5，约 2~5 分钟）
+npm run models
+# 国际 Key：python3 scripts/init_models.py --region global
+```
+
+脚本会：
+
+- 用与前端 `renderPromptForTraits` **完全一致**的模板，生成教学 2 件 + 演示 5 件 GLB；
+- 写入 `public/models/{tutorial,demo}/*.glb` 与 `public/models/manifest.json`；
+- 已存在的文件默认跳过（可反复执行、不重复烧积分），`--force` 强制重生成；
+- **不打印、不落盘 Key**；`public/models/` 已加入 `.gitignore`，不会被误提交。
+
+生成后刷新网页，进入教学 / 演示关卡的「验货」页即可看到真实模型（底部会标注「本地预置模型」）。没生成时自动使用占位模型，玩法完全不受影响。
 
 **第一次打开** → 开始页：
 
-1. **零成本**：点「教学关卡」，跟着六步目标走完（约 3 分钟，0 积分），再看「演示关卡」熟悉 5 件集市。
+1. **零成本**：先按上面的「预置 3D 模型」生成（可选），再点「教学关卡」，跟着六步目标走完（约 3 分钟，0 积分），最后用「演示关卡」熟悉 5 件集市。
 2. **正式开局**：设置页填 `DeepSeek API Key` 与 `Lux3D API Key`（国内 / 国际 Key 不通用，注意地区下拉）；点「测试 DeepSeek Key」预检余额；保存。
 3. 开始页点「开始游戏」→ 选世界 → 穿越（首关约 2~3 分钟：世界观先到先展，5 件 GLB 并行布展）→ 开市。
 4. 中途刷新：开始页会变成「继续上一局」，回到原处（教学关除外，教学关刷新从头再来）。
@@ -203,6 +245,7 @@ npm run verify      # typecheck + lint + test + build（提交前一键）
 | 方案模块 | 代码 | 状态 |
 |---|---|---|
 | 开始页 / 教学关卡 | `ui/screens/start.ts`、`game/tutorial/level.ts` | ✅ 六步引导、剧本问答、0 调用、存档隔离 |
+| 预置 3D 模型（P0） | `scripts/init_models.py`、`store/localModels.ts` | ✅ 脚本生成 + manifest + 自动加载 + 占位回退；模型不入库；**真实 Lux3D 生成待你用 Key 执行** |
 | 双 API 直连（CORS / 鉴权 / 轮询） | `src/api/*` | ✅ 适配层完成；**真实 Key 端到端待联调** |
 | 关卡协议 + 归一化 | `src/game/validate.ts` | ✅ Zod、真伪覆写、特征推导、价格重平衡、难度整形 |
 | 生成编排（重试 / 并发 / 缓存） | `src/game/generation.ts` | ✅ 关卡 3 次定向重试；5 件并发；单件失败重试 1 次；可取消 |
@@ -234,7 +277,8 @@ npm run verify      # typecheck + lint + test + build（提交前一键）
 8. **额度即资源**：议价 10 点/关（+5/级）每次报价扣 1；询问 5 次/关（+2/级）仅集市可用；简报免费。教学关同样扣额度。
 9. **教学关是沙盒**：独立玩家、独立会话、0 模型调用、不写存档 / 快照；退出后恢复真实存档。
 10. **续玩只存运行时**：快照含关卡 JSON + 额度 / 报价 / 成交 / 精灵日志 / 阶段；GLB 仍从 IndexedDB 取，不重复计费。
-11. **Key 不上传**：只存 localStorage，仅作请求头发给 DeepSeek / Lux3D；页面无第三方脚本。
+11. **模型不入库、按需生成**：仓库只带 prompt 与脚本；`public/models/` 由玩家用自己的 Key 生成并被 git 忽略；加载失败 / 未生成时安静回退占位模型。
+12. **Key 不上传**：只存 localStorage / 环境变量，仅作请求头发给 DeepSeek / Lux3D；页面无第三方脚本。
 
 ## 数值一览
 
@@ -249,7 +293,7 @@ npm run verify      # typecheck + lint + test + build（提交前一键）
 | 底价 | [0.55, 0.75] × 标价（前端持锁） |
 | 回收 | 真品 = `trueValue`；仿品 = 0.1 × 标价；手续费 20/件 |
 | 经验 / 难度 | 净收益即经验（负收益不给经验、不掉级），每 800 升 1 级；难度 = 等级 |
-| 3D 消耗 | 13 积分/件 × 5 = 65/关；免费档并发 5 正好一关；教学 / 演示 0 积分 |
+| 3D 消耗 | 13 积分/件 × 5 = 65/关；免费档并发 5 正好一关；教学 / 演示 0 积分（预置模型一次性 ≈91 积分） |
 | 结束条件 | 额度耗尽 / 资金 < 全场最低底价 / 无可议之货 |
 
 ## 验证与测试
@@ -258,22 +302,23 @@ npm run verify      # typecheck + lint + test + build（提交前一键）
 npm run verify
 # tsc --noEmit ✓（strict + noUnusedLocals）
 # eslint ✓（flat config）
-# vitest: 14 files / 73 tests ✓
+# vitest: 15 files / 78 tests ✓
 # vite build: dist/ ✓
 #   主包 index-*.js  ~186KB / gzip ~62KB
 #   3D chunk viewer-*.js ~651KB / gzip ~163KB（按需加载）
 ```
 
-- 单测覆盖：价格 clamp、真伪覆写、难度整形、特征 diff、额度与回合、一致性兜底、结算数学、精灵防火墙/编号过滤、DeepSeek/Lux3D 请求契约、关卡重试、模型重试 / 取消、5 件并发、续玩快照、教学六步推导、教学存档隔离、UI 渲染、启动冒烟。
+- 单测覆盖：价格 clamp、真伪覆写、难度整形、特征 diff、额度与回合、一致性兜底、结算数学、精灵防火墙/编号过滤、DeepSeek/Lux3D 请求契约、关卡重试、模型重试 / 取消、5 件并发、续玩快照、教学六步推导、教学存档隔离、预置模型加载/缓存/回退、UI 渲染、启动冒烟。
 - **端到端**（本机 Chrome + Playwright 驱动）：开始页 → 教学关卡 → 问精灵（正常 + 防火墙挡回）→ 两件验货（WebGL canvas 正常，7 颗 / 6 颗可数）→ 砍价 320/300 → 自动收摊 → 基地 diff → 结算 → 教学完成 → 回开始页（显示"教学已通关"）→ 演示关卡开市 → **刷新 → 开始页「继续上一局」→ 回到集市**。控制台 0 error，教学与演示全程 **0 外部请求**。
-- **未验证**：真实 DeepSeek / Lux3D Key 的在线调用（本轮无 Key）。适配层契约来自方案实测与既有项目实现，D1 需用真实 Key 复验。
+- **未验证**：真实 DeepSeek / Lux3D Key 的在线调用（本轮无 Key）。预置模型链路已用一份合成 GLB 在浏览器验证「manifest → GLB → Three.js」可加载；真实模型需你执行 `npm run models` 生成。
 
 ## 下一步
 
 | 优先级 | 事项 | 验收 |
 |---|---|---|
+| P0 | **用你的 Key 跑预置模型脚本**：`npm run models` → 教学 / 演示关加载真实 GLB | `public/models/manifest.json` 含 7 件；验货页显示「本地预置模型」 |
 | P0 | 真实 Key 跑通「LLM JSON → 5×G1-Turbo → GLB 落 IndexedDB」 | 控制台可见整关 JSON + 5 个有效 GLB |
-| P0 | 用真实 GLB 核验计数特征保真度（样件 `crystal_test.glb`） | 7 颗 / 少 1 颗肉眼可辨；不稳则提高色族 / 形制权重 |
+| P0 | 用真实预置 GLB 核验计数特征保真度 | 7 颗 / 少 1 颗肉眼可辨；不稳则提高色族 / 形制权重 |
 | P1 | 部署公网静态站 + demo 视频脚本 | 评审可点开即玩 |
 | P1 | 演出继续打磨：穿越过场分层文案、揭晓音效、结算奖章 | demo 视频可录 |
 | P2 | 移动端触控微调（方案不做移动端，但滑条 / 3D 手势已可用） | — |
