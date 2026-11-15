@@ -24,3 +24,11 @@ secrets/
 .cache/
 tmp/
 *.log
+
+# 本地 npm 缓存 / 日志（受限环境下落在仓库内，不提交）
+.npm-cache/
+.npm-logs/
+
+# 本地端到端验证产物（截图 / 脚本）
+.verify/
+.dev-server.log
