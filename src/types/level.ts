@@ -107,9 +107,13 @@ export interface Stall {
   economy: ItemEconomy;
 }
 
+/** 关卡来源：LLM 现场生成 / 演示关卡 / 教学关卡。 */
+export type LevelKind = 'generated' | 'demo' | 'tutorial';
+
 export interface LevelJson {
   /** 本地生成：`{seedId}-{difficulty}-{timestamp36}`。 */
   id: string;
+  kind: LevelKind;
   seedId: string;
   seedGenre: string;
   difficulty: number;
@@ -177,6 +181,24 @@ export interface LevelRuntime {
 export interface RecyclePlan {
   itemId: string;
   recycle: boolean;
+}
+
+/** 教学关卡进度（直接进 localStorage 的 active run，刷新可续）。 */
+export interface TutorialProgress {
+  /** 已验货的珍宝 itemId。 */
+  inspected: string[];
+  /** 是否已进入过集市。 */
+  openedMarket: boolean;
+}
+
+/** 刷新续玩快照：整个运行时都在 localStorage，够小且可同步恢复。 */
+export interface ActiveRunSnapshot {
+  version: 1;
+  savedAt: number;
+  player: PlayerState;
+  level: LevelJson;
+  runtime: LevelRuntime;
+  tutorial?: TutorialProgress;
 }
 
 export interface Settlement {

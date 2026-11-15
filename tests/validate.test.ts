@@ -65,7 +65,10 @@ describe('normalizeLevel', () => {
   });
 
   it('难度 1：真品 3 件，仿品各带 2 枚显性算子', () => {
-    const { level } = normalizeLevel(makeRawLevel({ allAuthentic: true }), input({ difficulty: 1 }));
+    const { level } = normalizeLevel(
+      makeRawLevel({ allAuthentic: true }),
+      input({ difficulty: 1 }),
+    );
     const authentic = level.stalls.filter((stall) => stall.item.isAuthentic);
     const fakes = level.stalls.filter((stall) => !stall.item.isAuthentic);
     expect(authentic).toHaveLength(3);
@@ -75,10 +78,12 @@ describe('normalizeLevel', () => {
       const types = fake.item.tamperOps.map((op) => op.type);
       expect(types).toContain('color_swap');
       expect(types).toContain('count_change');
-      expect(diffTraits(
-        level.creators.find((entry) => entry.id === fake.creatorId)!.signatureTraits,
-        fake.item.traits,
-      ).length).toBeGreaterThanOrEqual(2);
+      expect(
+        diffTraits(
+          level.creators.find((entry) => entry.id === fake.creatorId)!.signatureTraits,
+          fake.item.traits,
+        ).length,
+      ).toBeGreaterThanOrEqual(2);
     }
   });
 
@@ -106,7 +111,10 @@ describe('normalizeLevel', () => {
   });
 
   it('tamperOp 字段与类型不匹配时按类型修正，并给出 warning', () => {
-    const { level, warnings } = normalizeLevel(makeRawLevel({ tamperFieldMismatch: true }), input());
+    const { level, warnings } = normalizeLevel(
+      makeRawLevel({ tamperFieldMismatch: true }),
+      input(),
+    );
     const t2 = level.stalls.find((stall) => stall.itemId === 'T2')!;
     expect(t2.item.tamperOps[0]!.field).toBe('gemCount');
     expect(t2.item.traits.gemCount).toBe(6);

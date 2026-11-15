@@ -25,9 +25,7 @@ export interface OfferContext {
 
 export type OfferBlockCode = NonNullable<BargainDecision['code']>;
 
-export type OfferCheck =
-  | { ok: true }
-  | { ok: false; code: OfferBlockCode; message: string };
+export type OfferCheck = { ok: true } | { ok: false; code: OfferBlockCode; message: string };
 
 /** 单件当前是第几回合（1 起）。 */
 export function nextRound(item: ItemRuntime): number {
@@ -106,7 +104,10 @@ export function localDecision(ctx: OfferContext): BargainDecision {
 }
 
 function parseDecision(raw: string): { accept: boolean; line: string } | null {
-  const trimmed = raw.trim().replace(/^```[a-zA-Z]*\s*/, '').replace(/```\s*$/, '');
+  const trimmed = raw
+    .trim()
+    .replace(/^```[a-zA-Z]*\s*/, '')
+    .replace(/```\s*$/, '');
   let data: unknown;
   try {
     data = JSON.parse(trimmed);
@@ -153,7 +154,10 @@ export async function decideOffer(
     const result = await client.chat({
       messages: [
         { role: 'system', content: buildBargainSystemPrompt(ctx.stall) },
-        { role: 'user', content: buildBargainUserPrompt(ctx.stall, ctx.offer, nextRound(ctx.item)) },
+        {
+          role: 'user',
+          content: buildBargainUserPrompt(ctx.stall, ctx.offer, nextRound(ctx.item)),
+        },
       ],
       json: true,
       temperature: 0.8,

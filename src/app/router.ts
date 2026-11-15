@@ -4,11 +4,13 @@ import { disposeInspectViewer, renderInspect } from '../ui/screens/inspect';
 import { renderBase } from '../ui/screens/base';
 import { renderMarket } from '../ui/screens/market';
 import { renderSettings } from '../ui/screens/settings';
+import { renderStart } from '../ui/screens/start';
 import { renderTravel } from '../ui/screens/travel';
 import { topbar } from '../ui/components';
 import { h } from '../ui/dom';
 
 const renderers: Record<ScreenName, (state: AppState) => HTMLElement> = {
+  start: renderStart,
   settings: renderSettings,
   travel: renderTravel,
   market: renderMarket,
@@ -22,11 +24,12 @@ export function initApp(root: HTMLElement): void {
     const state = store.get();
     disposeInspectViewer();
     const screen = renderers[state.screen](state);
+    const isLanding = state.screen === 'start';
     root.replaceChildren(
       h(
         'div',
-        { class: 'app' },
-        topbar(state),
+        { class: `app${isLanding ? ' app--landing' : ''}` },
+        isLanding ? null : topbar(state),
         h('main', { class: 'screen' }, screen),
         h('div', { class: 'toast-host', attrs: { 'aria-live': 'polite' } }),
       ),

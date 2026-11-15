@@ -6,6 +6,7 @@ import './styles/tokens.css';
 import './styles/base.css';
 import './styles/components.css';
 import './styles/screens.css';
+import './styles/landing.css';
 
 /**
  * 入口：读本机设置 / 存档 → 挂载 5 屏应用。
@@ -17,6 +18,7 @@ function boot(): void {
 
   store.set(bootstrapState());
   initApp(root);
+  if (store.get().resumeAvailable) actions.hydrateActiveModels();
 
   window.addEventListener('error', (event) => {
     console.error('[gemwright] 未捕获异常', event.error ?? event.message);

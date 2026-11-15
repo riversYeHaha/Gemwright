@@ -4,7 +4,7 @@ import { createDemoLevel } from '../src/game/fixtures/demoLevel';
 import { ensureLevelModels, generateLevel } from '../src/game/generation';
 import { getSeedById } from '../src/game/seeds';
 import { LevelError } from '../src/types/level';
-import type { Lux3DClient } from '../src/api/lux3d';
+import { Lux3DError, type Lux3DClient } from '../src/api/lux3d';
 import { makeRawLevel } from './fixtures/rawLevel';
 
 const seed = getSeedById('S01')!;
@@ -78,7 +78,9 @@ describe('ensureLevelModels', () => {
           new Promise((resolve) => {
             started += 1;
             maxConcurrent = Math.max(maxConcurrent, started);
-            resolvers.push(() => resolve({ blob: new Blob(['glb']), taskId: '1', url: 'https://x/a.glb' }));
+            resolvers.push(() =>
+              resolve({ blob: new Blob(['glb']), taskId: '1', url: 'https://x/a.glb' }),
+            );
           }),
       ),
     } as unknown as Lux3DClient;
@@ -90,6 +92,44 @@ describe('ensureLevelModels', () => {
     const result = await pending;
     expect(maxConcurrent).toBe(5);
     expect(Object.keys(result.models)).toHaveLength(5);
+  });
+
+  it('可重试失败（task-failed / timeout）会自动重试一次', async () => {
+    const level = createDemoLevel(1);
+    let calls = 0;
+    const lux3d = {
+      generateGlb: vi.fn(async () => {
+        calls += 1;
+        if (calls === 1) throw new Lux3DError('显存抖动', 'task-failed');
+        return { blob: new Blob(['glb']), taskId: '1', url: 'https://x/a.glb' };
+      }),
+    } as unknown as Lux3DClient;
+    const cache = { getModel: vi.fn(async () => null), saveModel: vi.fn(async () => undefined) };
+    const result = await ensureLevelModels(level, { cache, lux3d });
+    expect(result.errors).toEqual({});
+    expect(Object.values(result.models).every((blob) => blob instanceof Blob)).toBe(true);
+  });
+
+  it('取消布展：标记停止、不产生 errors', async () => {
+    const level = createDemoLevel(1);
+    const controller = new AbortController();
+    const lux3d = {
+      generateGlb: vi.fn(
+        (_prompt: string, options?: { signal?: AbortSignal }) =>
+          new Promise((_resolve, reject) => {
+            options?.signal?.addEventListener('abort', () =>
+              reject(new Lux3DError('生成已取消', 'aborted')),
+            );
+          }),
+      ),
+    } as unknown as Lux3DClient;
+    const cache = { getModel: vi.fn(async () => null), saveModel: vi.fn(async () => undefined) };
+    const pending = ensureLevelModels(level, { cache, lux3d }, { signal: controller.signal });
+    await vi.waitFor(() => expect(lux3d.generateGlb).toHaveBeenCalled());
+    controller.abort();
+    const result = await pending;
+    expect(result.errors).toEqual({});
+    expect(Object.values(result.models).every((blob) => blob === null)).toBe(true);
   });
 
   it('有 Lux3D 时按 traits 生成并写缓存，单件失败不影响其他件', async () => {
@@ -113,7 +153,8 @@ describe('ensureLevelModels', () => {
     expect(result.creditsSpent).toBeGreaterThan(0);
     expect(cache.saveModel).toHaveBeenCalled();
     // prompt 由 traits 组装：Lux3D 原生模板里包含形制、色族与颗数
-    const prompt = (lux3d.generateGlb as unknown as { mock: { calls: string[][] } }).mock.calls[0]?.[0] ?? '';
+    const prompt =
+      (lux3d.generateGlb as unknown as { mock: { calls: string[][] } }).mock.calls[0]?.[0] ?? '';
     expect(prompt).toContain('八面体');
     expect(prompt).toContain('青蓝');
   });

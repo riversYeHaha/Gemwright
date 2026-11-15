@@ -25,8 +25,11 @@ function runtimeWith(purchases: Record<string, number>): LevelRuntime {
         stall.itemId,
         {
           itemId: stall.itemId,
-          status: purchases[stall.itemId] !== undefined ? ('purchased' as const) : ('listed' as const),
-          ...(purchases[stall.itemId] !== undefined ? { purchasePrice: purchases[stall.itemId] } : {}),
+          status:
+            purchases[stall.itemId] !== undefined ? ('purchased' as const) : ('listed' as const),
+          ...(purchases[stall.itemId] !== undefined
+            ? { purchasePrice: purchases[stall.itemId] }
+            : {}),
           offers: [],
           rejectedPrices: [],
         },

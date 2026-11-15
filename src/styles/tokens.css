@@ -21,6 +21,8 @@
   --radius: 16px;
   --radius-sm: 10px;
   --shadow: 0 26px 60px -30px rgba(0, 0, 0, 0.9);
-  --font: 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font:
+    'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', system-ui, -apple-system, 'Segoe UI',
+    sans-serif;
   --mono: ui-monospace, SFMono-Regular, 'JetBrains Mono', Menlo, monospace;
 }

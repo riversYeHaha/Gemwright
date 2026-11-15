@@ -173,7 +173,9 @@
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
-  transition: border-color 0.18s ease, transform 0.18s ease;
+  transition:
+    border-color 0.18s ease,
+    transform 0.18s ease;
 }
 
 .stall-card:hover {
@@ -416,8 +418,7 @@
   border: 1px solid var(--line-strong);
   background:
     radial-gradient(500px 320px at 50% 10%, rgba(56, 189, 248, 0.12), transparent 70%),
-    radial-gradient(420px 300px at 50% 100%, rgba(246, 183, 60, 0.08), transparent 70%),
-    #07080d;
+    radial-gradient(420px 300px at 50% 100%, rgba(246, 183, 60, 0.08), transparent 70%), #07080d;
   overflow: hidden;
   touch-action: none;
 }
@@ -435,6 +436,17 @@
   place-items: center;
   color: var(--muted);
   padding: 2rem;
+}
+
+.viewer__loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--faint);
+  font-size: 0.85rem;
+  letter-spacing: 0.16em;
+  z-index: 1;
 }
 
 .viewer__hint {
@@ -618,5 +630,252 @@
 
   .viewer {
     min-height: 320px;
+  }
+}
+
+/* ---------- 教学精灵：预设问题 ---------- */
+
+.fairy-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.fairy-question {
+  text-align: left;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid rgba(94, 234, 212, 0.28);
+  background: rgba(94, 234, 212, 0.06);
+  color: var(--text);
+  font-size: 0.84rem;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.fairy-question:hover:not(:disabled) {
+  background: rgba(94, 234, 212, 0.13);
+  border-color: var(--teal);
+}
+
+.fairy-question:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.fairy-question--blocked {
+  border-style: dashed;
+}
+
+/* ---------- 演出：摊主反应 / 逐件揭晓 / 开箱雾 / 穿越 ---------- */
+
+.decision {
+  animation: decision-pop 0.32s ease both;
+}
+
+.decision--no {
+  animation: decision-shake 0.4s ease both;
+}
+
+@keyframes decision-pop {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes decision-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  50% {
+    transform: translateX(4px);
+  }
+  75% {
+    transform: translateX(-2px);
+  }
+}
+
+.loot-card--reveal {
+  opacity: 0;
+  animation: loot-reveal 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes loot-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+.viewer-fog {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 55%, rgba(148, 197, 255, 0.22), transparent 45%),
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.18), transparent 40%),
+    rgba(7, 8, 13, 0.55);
+  filter: blur(10px);
+  animation: fog-dissipate 1.35s ease forwards;
+}
+
+@keyframes fog-dissipate {
+  0% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  60% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+.typewriter::after {
+  content: '▍';
+  margin-left: 0.1rem;
+  color: var(--teal);
+  animation: caret-blink 0.9s step-end infinite;
+}
+
+@keyframes caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.warp {
+  position: relative;
+  height: 190px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid rgba(125, 211, 252, 0.25);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(94, 234, 212, 0.16), transparent 55%), #05060b;
+  display: grid;
+  place-items: center;
+}
+
+.warp__core {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #e0fbff, #38bdf8 45%, #0e7490 70%);
+  box-shadow: 0 0 50px rgba(56, 189, 248, 0.8);
+  animation: warp-pulse 2s ease-in-out infinite;
+}
+
+.warp__ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(246, 183, 60, 0.35);
+  animation: warp-expand 2.6s ease-out infinite;
+}
+
+.warp__ring--a {
+  width: 120px;
+  height: 120px;
+}
+
+.warp__ring--b {
+  width: 200px;
+  height: 200px;
+  animation-delay: 0.6s;
+}
+
+.warp__ring--c {
+  width: 300px;
+  height: 300px;
+  animation-delay: 1.2s;
+}
+
+.warp__label {
+  position: absolute;
+  bottom: 0.8rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+}
+
+@keyframes warp-expand {
+  0% {
+    transform: scale(0.55);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+
+@keyframes warp-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+/* ---------- 开始页进场 ---------- */
+
+.landing__copy > * {
+  animation: screen-in 0.5s ease both;
+}
+
+.landing__copy > *:nth-child(2) {
+  animation-delay: 0.05s;
+}
+
+.landing__copy > *:nth-child(3) {
+  animation-delay: 0.1s;
+}
+
+.landing__copy > *:nth-child(4) {
+  animation-delay: 0.16s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loot-card--reveal,
+  .viewer-fog,
+  .warp__ring,
+  .warp__core,
+  .landing__copy > *,
+  .decision,
+  .decision--no {
+    animation: none;
+    opacity: 1;
+    filter: none;
   }
 }

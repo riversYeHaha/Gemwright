@@ -1,5 +1,6 @@
 import {
   askFairyQuestion,
+  askTutorialQuestion,
   closeMarket,
   dismissNotice,
   navigate,
@@ -10,8 +11,10 @@ import {
 } from '../../app/actions';
 import type { AppState } from '../../app/store';
 import type { LevelSession } from '../../game/level';
-import type { LevelJson, Stall } from '../../types/level';
-import { appendAll, button, fmt, h } from '../dom';
+import { TUTORIAL_QA } from '../../game/tutorial/level';
+import { tutorialCoach } from '../tutorial';
+import type { FairyExchange, LevelJson, Stall } from '../../types/level';
+import { appendAll, button, fmt, h, typewrite } from '../dom';
 import { badge, emptyState, noticeBar, screenHead } from '../components';
 
 /** 集市：5 件珍宝的卡片、逐件议价、精灵侧栏（含免费简报与限次问答）。 */
@@ -24,7 +27,11 @@ export function renderMarket(state: AppState): HTMLElement {
     appendAll(
       body,
       emptyState('还没有进入任何世界。'),
-      h('div', { class: 'actions-row' }, button('去穿越', { variant: 'primary', onClick: () => navigate('travel') })),
+      h(
+        'div',
+        { class: 'actions-row' },
+        button('去穿越', { variant: 'primary', onClick: () => navigate('travel') }),
+      ),
     );
     return body;
   }
@@ -33,7 +40,11 @@ export function renderMarket(state: AppState): HTMLElement {
     appendAll(
       body,
       emptyState('本关已经收摊，真相在基地等你。'),
-      h('div', { class: 'actions-row' }, button('去基地鉴宝', { variant: 'primary', onClick: () => navigate('base') })),
+      h(
+        'div',
+        { class: 'actions-row' },
+        button('去基地鉴宝', { variant: 'primary', onClick: () => navigate('base') }),
+      ),
     );
     return body;
   }
@@ -46,9 +57,20 @@ export function renderMarket(state: AppState): HTMLElement {
   appendAll(
     body,
     screenHead(`集市 · ${level.world.name}`, '你以为你在砍价，其实你在鉴定。', [
-      badge(`物价指数 ${level.world.priceIndex.toFixed(2)}`, level.world.priceIndex >= 1.2 ? 'red' : 'teal'),
-      badge(state.settings.quickBargain ? '快速议价' : '混合议价', 'muted'),
+      badge(
+        `物价指数 ${level.world.priceIndex.toFixed(2)}`,
+        level.world.priceIndex >= 1.2 ? 'red' : 'teal',
+      ),
+      badge(
+        level.kind === 'tutorial'
+          ? '教学 · 本地判定'
+          : state.settings.quickBargain
+            ? '快速议价'
+            : '混合议价',
+        'muted',
+      ),
     ]),
+    tutorialCoach(state),
     noticeBar(state.notice, () => dismissNotice()),
     h(
       'div',
@@ -124,7 +146,15 @@ function renderStallCard(stall: Stall, state: AppState, session: LevelSession): 
     h(
       'header',
       { class: 'stall-card__head' },
-      h('div', null, h('h3', { text: stall.item.name }), h('p', { class: 'stall-card__creator', text: `${creator?.name ?? '佚名'} · ${creator?.reputationTier ?? '无名匠'}` })),
+      h(
+        'div',
+        null,
+        h('h3', { text: stall.item.name }),
+        h('p', {
+          class: 'stall-card__creator',
+          text: `${creator?.name ?? '佚名'} · ${creator?.reputationTier ?? '无名匠'}`,
+        }),
+      ),
       statusBadge,
     ),
     h('p', { class: 'stall-card__pitch', text: `「${stall.item.pitch}」` }),
@@ -132,7 +162,14 @@ function renderStallCard(stall: Stall, state: AppState, session: LevelSession): 
       'div',
       { class: 'stall-card__meta' },
       h('span', { text: `摊主：${stall.stallOwner.name}` }),
-      badge(stall.stallOwner.savviness, stall.stallOwner.savviness === '懂行' ? 'gold' : stall.stallOwner.savviness === '外行' ? 'teal' : 'muted'),
+      badge(
+        stall.stallOwner.savviness,
+        stall.stallOwner.savviness === '懂行'
+          ? 'gold'
+          : stall.stallOwner.savviness === '外行'
+            ? 'teal'
+            : 'muted',
+      ),
     ),
     h('p', { class: 'stall-card__persona', text: stall.stallOwner.persona }),
     h(
@@ -140,7 +177,10 @@ function renderStallCard(stall: Stall, state: AppState, session: LevelSession): 
       { class: 'stall-card__price' },
       h('span', { class: 'label', text: '标价' }),
       h('strong', { text: `${fmt(stall.economy.salePrice)} 星际币` }),
-      h('span', { class: 'hint', text: `行情 ${fmt(creator?.quoteRange[0] ?? 0)}~${fmt(creator?.quoteRange[1] ?? 0)}` }),
+      h('span', {
+        class: 'hint',
+        text: `行情 ${fmt(creator?.quoteRange[0] ?? 0)}~${fmt(creator?.quoteRange[1] ?? 0)}`,
+      }),
     ),
     decision
       ? h(
@@ -172,7 +212,10 @@ function renderOfferPanel(stall: Stall, session: LevelSession): HTMLElement {
   // range 的取值必须落在 min + n×step 上，所以把上限对 10 取整，保证"按标价成交"报得出来。
   const maxRaw = Math.max(10, Math.min(session.availableFunds, stall.economy.salePrice));
   const max = Math.max(10, Math.floor(maxRaw / 10) * 10);
-  const initial = Math.min(max, Math.max(10, Math.round((stall.economy.salePrice * 0.72) / 10) * 10));
+  const initial = Math.min(
+    max,
+    Math.max(10, Math.round((stall.economy.salePrice * 0.72) / 10) * 10),
+  );
   const slider = h('input', {
     class: 'slider',
     attrs: {
@@ -222,6 +265,7 @@ function renderOfferPanel(stall: Stall, session: LevelSession): HTMLElement {
 function renderFairyDrawer(state: AppState, session: LevelSession): HTMLElement {
   const level = state.level as LevelJson;
   const askLeft = Math.max(0, session.fairyQuota - session.state.askUsed);
+  if (level.kind === 'tutorial') return renderTutorialFairy(session, level, askLeft);
   const input = h('input', {
     class: 'input',
     attrs: {
@@ -255,7 +299,11 @@ function renderFairyDrawer(state: AppState, session: LevelSession): HTMLElement 
     },
     input,
     counter,
-    button('问', { variant: 'primary', disabled: askLeft <= 0 || state.fairyBusy, onClick: submit }),
+    button('问', {
+      variant: 'primary',
+      disabled: askLeft <= 0 || state.fairyBusy,
+      onClick: submit,
+    }),
   );
 
   return h(
@@ -264,7 +312,12 @@ function renderFairyDrawer(state: AppState, session: LevelSession): HTMLElement 
     h(
       'header',
       { class: 'fairy-drawer__head' },
-      h('div', null, h('h3', { text: `精灵「${level.fairy.name}」` }), h('p', { class: 'hint', text: level.fairy.persona })),
+      h(
+        'div',
+        null,
+        h('h3', { text: `精灵「${level.fairy.name}」` }),
+        h('p', { class: 'hint', text: level.fairy.persona }),
+      ),
       h('div', { class: 'fairy-drawer__quota', text: `${askLeft} 问` }),
     ),
     h('ul', { class: 'briefing' }, ...level.fairy.briefing.map((line) => h('li', { text: line }))),
@@ -272,19 +325,84 @@ function renderFairyDrawer(state: AppState, session: LevelSession): HTMLElement 
       'div',
       { class: 'fairy-log' },
       session.state.fairyLog.length === 0
-        ? h('p', { class: 'hint', text: '它还没开口。它懂世界、懂创作人、懂流行手法——但不知道任何单件的真伪与价格。' })
+        ? h('p', {
+            class: 'hint',
+            text: '它还没开口。它懂世界、懂创作人、懂流行手法——但不知道任何单件的真伪与价格。',
+          })
         : null,
-      ...session.state.fairyLog.map((entry) =>
-        h(
-          'div',
-          { class: 'fairy-log__entry' },
-          h('p', { class: 'fairy-log__q', text: `你：${entry.question}` }),
-          h('p', { class: `fairy-log__a${entry.blocked ? ' fairy-log__a--blocked' : ''}`, text: `${level.fairy.name}：${entry.answer}` }),
-        ),
-      ),
+      ...fairyLogEntries(level, session.state.fairyLog),
     ),
-    h('p', { class: 'hint', text: `本关剩余 ${askLeft} 问（每问 ≤50 字，回答 ≤100 字）；问单件真伪会被它挡回来。` }),
+    h('p', {
+      class: 'hint',
+      text: `本关剩余 ${askLeft} 问（每问 ≤50 字，回答 ≤100 字）；问单件真伪会被它挡回来。`,
+    }),
     form,
-    h('p', { class: 'hint hint--warn', text: '每问都是一次火力分配：好问题少走弯路，烂问题白白浪费额度。' }),
+    h('p', {
+      class: 'hint hint--warn',
+      text: '每问都是一次火力分配：好问题少走弯路，烂问题白白浪费额度。',
+    }),
   );
+}
+
+/** 教学关卡的精灵：只用预设问答，展示"懂行 + 防火墙 + 额度"三件事。 */
+function renderTutorialFairy(
+  session: LevelSession,
+  level: LevelJson,
+  askLeft: number,
+): HTMLElement {
+  const asked = new Set(session.state.fairyLog.map((entry) => entry.question));
+  return h(
+    'aside',
+    { class: 'fairy-drawer' },
+    h(
+      'header',
+      { class: 'fairy-drawer__head' },
+      h(
+        'div',
+        null,
+        h('h3', { text: `精灵「${level.fairy.name}」` }),
+        h('p', { class: 'hint', text: level.fairy.persona }),
+      ),
+      h('div', { class: 'fairy-drawer__quota', text: `${askLeft} 问` }),
+    ),
+    h('ul', { class: 'briefing' }, ...level.fairy.briefing.map((line) => h('li', { text: line }))),
+    h(
+      'div',
+      { class: 'fairy-questions' },
+      ...TUTORIAL_QA.map((qa) => {
+        const disabled = asked.has(qa.question) || askLeft <= 0;
+        return h('button', {
+          class: `fairy-question${qa.blocked ? ' fairy-question--blocked' : ''}`,
+          attrs: { type: 'button', ...(disabled ? { disabled: '' } : {}) },
+          on: { click: () => askTutorialQuestion(qa.id) },
+          text: qa.question,
+        });
+      }),
+    ),
+    h('div', { class: 'fairy-log' }, ...fairyLogEntries(level, session.state.fairyLog)),
+    h('p', {
+      class: 'hint',
+      text: '教学关卡不调用模型：精灵只回答这几句预设话术，但照常消耗询问额度。',
+    }),
+    h('p', { class: 'hint hint--warn', text: '注意那个被它挡回来的问题：它真的不知道单件真伪。' }),
+  );
+}
+
+/** 精灵对话渲染：最后一条回答用打字机（blocked 的挡回语直接显示）。 */
+function fairyLogEntries(level: LevelJson, log: FairyExchange[]): HTMLElement[] {
+  return log.map((entry, index) => {
+    const isLast = index === log.length - 1;
+    const full = `${level.fairy.name}：${entry.answer}`;
+    const answer = h('p', {
+      class: `fairy-log__a${entry.blocked ? ' fairy-log__a--blocked' : ''}`,
+      text: isLast && !entry.blocked ? '' : full,
+    });
+    if (isLast && !entry.blocked) typewrite(answer, full);
+    return h(
+      'div',
+      { class: 'fairy-log__entry' },
+      h('p', { class: 'fairy-log__q', text: `你：${entry.question}` }),
+      answer,
+    );
+  });
 }

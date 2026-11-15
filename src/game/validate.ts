@@ -199,7 +199,8 @@ export function applyTamperOp(spec: Traits, op: TamperOp | null): Traits {
   switch (op.type) {
     case 'color_swap': {
       const target = typeof op.to === 'string' ? op.to.trim() : '';
-      base.color = target && target !== spec.color ? target : nextDifferent(COLOR_FAMILIES, spec.color);
+      base.color =
+        target && target !== spec.color ? target : nextDifferent(COLOR_FAMILIES, spec.color);
       break;
     }
     case 'count_change': {
@@ -214,7 +215,8 @@ export function applyTamperOp(spec: Traits, op: TamperOp | null): Traits {
     }
     case 'shape_change': {
       const target = typeof op.to === 'string' ? op.to.trim() : '';
-      base.shape = target && target !== spec.shape ? target : nextDifferent(SHAPE_FAMILIES, spec.shape);
+      base.shape =
+        target && target !== spec.shape ? target : nextDifferent(SHAPE_FAMILIES, spec.shape);
       break;
     }
     case 'base_flip': {
@@ -288,13 +290,19 @@ function sanitizeTamperOp(op: TamperOp, spec: Traits): TamperOp {
       return {
         type: 'color_swap',
         field: 'color',
-        to: typeof op.to === 'string' && op.to.trim() ? op.to.trim() : nextDifferent(COLOR_FAMILIES, spec.color),
+        to:
+          typeof op.to === 'string' && op.to.trim()
+            ? op.to.trim()
+            : nextDifferent(COLOR_FAMILIES, spec.color),
       };
     case 'shape_change':
       return {
         type: 'shape_change',
         field: 'shape',
-        to: typeof op.to === 'string' && op.to.trim() ? op.to.trim() : nextDifferent(SHAPE_FAMILIES, spec.shape),
+        to:
+          typeof op.to === 'string' && op.to.trim()
+            ? op.to.trim()
+            : nextDifferent(SHAPE_FAMILIES, spec.shape),
       };
     case 'base_flip':
       return { type: 'base_flip', field: 'hasBase' };
@@ -429,7 +437,10 @@ function rebalancePrices(stalls: Stall[], funds: number): { saleTotal: number; a
   return { saleTotal: stalls.reduce((sum, stall) => sum + saleOf(stall), 0), adjusted };
 }
 
-function normalizeCreators(raw: z.infer<typeof rawCreatorSchema>[], warnings: string[]): CreatorProfile[] {
+function normalizeCreators(
+  raw: z.infer<typeof rawCreatorSchema>[],
+  warnings: string[],
+): CreatorProfile[] {
   const usedIds = new Set<string>();
   return raw.slice(0, 3).map((creator, index) => {
     let id = creator.id?.trim().toUpperCase() || `C${index + 1}`;
@@ -507,7 +518,9 @@ export function normalizeLevel(raw: unknown, input: NormalizeInput): NormalizeRe
       creators.find((entry) => entry.id === rawStall.creatorId.trim().toUpperCase()) ?? creators[0];
     if (!creator) continue;
     if (creator.id !== rawStall.creatorId.trim().toUpperCase()) {
-      warnings.push(`珍宝 ${rawStall.item.name} 的 creatorId 无法解析，已挂到 ${creator.name} 名下`);
+      warnings.push(
+        `珍宝 ${rawStall.item.name} 的 creatorId 无法解析，已挂到 ${creator.name} 名下`,
+      );
     }
 
     let itemId = rawStall.itemId?.trim().toUpperCase() || `T${index + 1}`;
@@ -528,15 +541,17 @@ export function normalizeLevel(raw: unknown, input: NormalizeInput): NormalizeRe
       if (op.field !== expectedField[op.type]) {
         warnings.push(`珍宝 ${rawStall.item.name} 的 tamperOp 字段与类型不匹配，已按类型修正`);
       }
-      providedOps.push(sanitizeTamperOp(
-        {
-          type: op.type,
-          field: expectedField[op.type],
-          ...(op.delta !== undefined ? { delta: op.delta } : {}),
-          ...(op.to !== undefined ? { to: op.to } : {}),
-        },
-        spec,
-      ));
+      providedOps.push(
+        sanitizeTamperOp(
+          {
+            type: op.type,
+            field: expectedField[op.type],
+            ...(op.delta !== undefined ? { delta: op.delta } : {}),
+            ...(op.to !== undefined ? { to: op.to } : {}),
+          },
+          spec,
+        ),
+      );
     }
 
     const economy = normalizeEconomy(rawStall.economy, creator);
@@ -650,6 +665,7 @@ export function normalizeLevel(raw: unknown, input: NormalizeInput): NormalizeRe
   const now = input.now ?? Date.now();
   const level: LevelJson = {
     id: input.levelId ?? `${input.seedId}-D${input.difficulty}-${now.toString(36)}`,
+    kind: 'generated',
     seedId: input.seedId,
     seedGenre: input.seedGenre,
     difficulty: input.difficulty,

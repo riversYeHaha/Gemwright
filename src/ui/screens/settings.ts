@@ -1,5 +1,6 @@
 import {
   dismissNotice,
+  goStart,
   navigate,
   resetProfile,
   testDeepSeekKey,
@@ -70,21 +71,30 @@ export function renderSettings(state: AppState): HTMLElement {
       { class: 'field' },
       h('span', { class: 'field__label', text: 'DeepSeek API Key' }),
       deepseekInput,
-      h('span', { class: 'field__hint', text: '用于关卡生成 / 精灵问答 / 摊主台词。platform.deepseek.com → API keys' }),
+      h('span', {
+        class: 'field__hint',
+        text: '用于关卡生成 / 精灵问答 / 摊主台词。platform.deepseek.com → API keys',
+      }),
     ),
     h(
       'label',
       { class: 'field' },
       h('span', { class: 'field__label', text: 'Lux3D（Aholo）API Key' }),
       lux3dInput,
-      h('span', { class: 'field__hint', text: '用于文生 3D。注意：请求头直接放 Key，不能加 Bearer 前缀。' }),
+      h('span', {
+        class: 'field__hint',
+        text: '用于文生 3D。注意：请求头直接放 Key，不能加 Bearer 前缀。',
+      }),
     ),
     h(
       'label',
       { class: 'field' },
       h('span', { class: 'field__label', text: 'Lux3D 地区' }),
       regionSelect,
-      h('span', { class: 'field__hint', text: `当前端点：${LUX3D_BASES[state.settings.region]}（国内外 Key 不通用）` }),
+      h('span', {
+        class: 'field__hint',
+        text: `当前端点：${LUX3D_BASES[state.settings.region]}（国内外 Key 不通用）`,
+      }),
     ),
   );
 
@@ -95,13 +105,25 @@ export function renderSettings(state: AppState): HTMLElement {
       'label',
       { class: 'switch', attrs: { for: 'quick-mode' } },
       quickMode,
-      h('span', null, h('strong', { text: '快速议价模式' }), h('em', { text: '纯本地公式判定 + 预生成台词池，零 LLM 调用' })),
+      h(
+        'span',
+        null,
+        h('strong', { text: '快速议价模式' }),
+        h('em', { text: '纯本地公式判定 + 预生成台词池，零 LLM 调用' }),
+      ),
     ),
     h(
       'label',
       { class: 'switch', attrs: { for: 'ack-cost' } },
       ackCost,
-      h('span', null, h('strong', { text: '我了解积分消耗' }), h('em', { text: `文生 3D ${LUX3D_CREDITS_PER_ITEM} 积分/件，一关 ${ITEMS_PER_LEVEL} 件 ≈ ${estimateCredits(ITEMS_PER_LEVEL)} 积分` })),
+      h(
+        'span',
+        null,
+        h('strong', { text: '我了解积分消耗' }),
+        h('em', {
+          text: `文生 3D ${LUX3D_CREDITS_PER_ITEM} 积分/件，一关 ${ITEMS_PER_LEVEL} 件 ≈ ${estimateCredits(ITEMS_PER_LEVEL)} 积分`,
+        }),
+      ),
     ),
   );
 
@@ -122,16 +144,23 @@ export function renderSettings(state: AppState): HTMLElement {
       },
     }),
     button('清除两把 Key', { variant: 'danger', onClick: () => wipeKeys() }),
-    state.session ? button('回到当前关卡', { variant: 'subtle', onClick: () => navigate('market') }) : null,
+    state.session
+      ? button('回到当前关卡', { variant: 'subtle', onClick: () => navigate('market') })
+      : null,
+    button('回开始页', { variant: 'subtle', onClick: () => goStart() }),
   );
 
   return h(
     'div',
     { class: 'screen-body' },
-    screenHead('设置', '两把 Key 只存这台设备的浏览器里，不经过任何服务器；AI 直连由你自己的 Key 付费。', [
-      badge('零后端', 'teal'),
-      badge(state.settings.quickBargain ? '快速议价' : '混合议价', 'gold'),
-    ]),
+    screenHead(
+      '设置',
+      '两把 Key 只存这台设备的浏览器里，不经过任何服务器；AI 直连由你自己的 Key 付费。',
+      [
+        badge('零后端', 'teal'),
+        badge(state.settings.quickBargain ? '快速议价' : '混合议价', 'gold'),
+      ],
+    ),
     noticeBar(state.notice, () => dismissNotice()),
     section('API Key', keyFields, switches, actionsRow),
     section(
@@ -139,8 +168,12 @@ export function renderSettings(state: AppState): HTMLElement {
       h(
         'ul',
         { class: 'bullets' },
-        h('li', { text: 'Key 存 localStorage，仅在请求 DeepSeek / Lux3D 时作为请求头发送；页面不加载任何第三方脚本。' }),
-        h('li', { text: `每关 5 件文生 3D ≈ ${estimateCredits(ITEMS_PER_LEVEL)} 积分；关卡 JSON 与 GLB 存 IndexedDB，重开同关零积分重跑。` }),
+        h('li', {
+          text: 'Key 存 localStorage，仅在请求 DeepSeek / Lux3D 时作为请求头发送；页面不加载任何第三方脚本。',
+        }),
+        h('li', {
+          text: `每关 5 件文生 3D ≈ ${estimateCredits(ITEMS_PER_LEVEL)} 积分；关卡 JSON 与 GLB 存 IndexedDB，重开同关零积分重跑。`,
+        }),
         h('li', { text: '免费档 Lux3D 并发为 5，恰好一关 5 件并行，不会排队到第 6 件。' }),
       ),
     ),
@@ -154,7 +187,10 @@ export function renderSettings(state: AppState): HTMLElement {
       h(
         'div',
         { class: 'actions-row' },
-        button('重置存档（回 1000 资金 / Lv.1）', { variant: 'danger', onClick: () => resetProfile() }),
+        button('重置存档（回 1000 资金 / Lv.1）', {
+          variant: 'danger',
+          onClick: () => resetProfile(),
+        }),
         button('去穿越', { variant: 'ghost', onClick: () => navigate('travel') }),
       ),
     ),

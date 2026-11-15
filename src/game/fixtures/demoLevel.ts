@@ -104,6 +104,7 @@ export function createDemoLevel(now = Date.now()): LevelJson {
 
   return {
     id: 'demo-level',
+    kind: 'demo',
     seedId: 'S01',
     seedGenre: '熔岩锻造城邦',
     difficulty: 2,

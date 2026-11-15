@@ -48,9 +48,7 @@ export function buildFairyContext(level: LevelJson): FairyContext {
   };
 }
 
-export type QuestionCheck =
-  | { ok: true; value: string }
-  | { ok: false; error: string };
+export type QuestionCheck = { ok: true; value: string } | { ok: false; error: string };
 
 /** 玩家问题：去空白、≤50 字（按 Unicode 码点）。 */
 export function sanitizeQuestion(raw: string): QuestionCheck {

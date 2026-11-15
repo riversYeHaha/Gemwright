@@ -93,3 +93,26 @@ export function toast(message: string, kind: 'info' | 'error' | 'success' = 'inf
     setTimeout(() => node.remove(), 300);
   }, 2600);
 }
+
+/** 打字机：用于精灵台词。节点离屏（重绘）后自动停表。 */
+export function typewrite(node: HTMLElement, text: string, speedMs = 18): void {
+  const chars = [...text];
+  requestAnimationFrame(() => {
+    if (!node.isConnected) return;
+    node.textContent = '';
+    node.classList.add('typewriter');
+    let index = 0;
+    const timer = setInterval(() => {
+      if (!node.isConnected) {
+        clearInterval(timer);
+        return;
+      }
+      index += 1;
+      node.textContent = chars.slice(0, index).join('');
+      if (index >= chars.length) {
+        clearInterval(timer);
+        node.classList.remove('typewriter');
+      }
+    }, speedMs);
+  });
+}

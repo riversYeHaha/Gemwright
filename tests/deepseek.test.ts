@@ -16,7 +16,10 @@ describe('DeepSeekClient', () => {
         usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
       }),
     );
-    const client = new DeepSeekClient({ apiKey: 'sk-test', fetchImpl: fetchImpl as unknown as typeof fetch });
+    const client = new DeepSeekClient({
+      apiKey: 'sk-test',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
     const result = await client.chat({
       messages: [{ role: 'user', content: 'hi' }],
       json: true,
@@ -36,10 +39,18 @@ describe('DeepSeekClient', () => {
 
   it('HTTP 错误带上官方 message，不泄露请求头', async () => {
     const fetchImpl = vi.fn(async () =>
-      jsonResponse({ error: { message: 'Insufficient Balance', code: 'invalid_request_error' } }, 402),
+      jsonResponse(
+        { error: { message: 'Insufficient Balance', code: 'invalid_request_error' } },
+        402,
+      ),
     );
-    const client = new DeepSeekClient({ apiKey: 'sk-secret', fetchImpl: fetchImpl as unknown as typeof fetch });
-    await expect(client.chat({ messages: [{ role: 'user', content: 'hi' }] })).rejects.toMatchObject({
+    const client = new DeepSeekClient({
+      apiKey: 'sk-secret',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    await expect(
+      client.chat({ messages: [{ role: 'user', content: 'hi' }] }),
+    ).rejects.toMatchObject({
       name: 'DeepSeekError',
       status: 402,
       message: 'Insufficient Balance',
@@ -55,7 +66,9 @@ describe('DeepSeekClient', () => {
     const ok = new DeepSeekClient({
       apiKey: 'k',
       fetchImpl: (async () =>
-        jsonResponse({ choices: [{ message: { content: '```json\n{"a":1}\n```' } }] })) as unknown as typeof fetch,
+        jsonResponse({
+          choices: [{ message: { content: '```json\n{"a":1}\n```' } }],
+        })) as unknown as typeof fetch,
     });
     const parsed = await ok.jsonChat({ messages: [{ role: 'user', content: 'x' }] });
     expect(parsed.data).toEqual({ a: 1 });
@@ -63,9 +76,13 @@ describe('DeepSeekClient', () => {
     const bad = new DeepSeekClient({
       apiKey: 'k',
       fetchImpl: (async () =>
-        jsonResponse({ choices: [{ message: { content: '这不是 JSON' } }] })) as unknown as typeof fetch,
+        jsonResponse({
+          choices: [{ message: { content: '这不是 JSON' } }],
+        })) as unknown as typeof fetch,
     });
-    await expect(bad.jsonChat({ messages: [{ role: 'user', content: 'x' }] })).rejects.toMatchObject({
+    await expect(
+      bad.jsonChat({ messages: [{ role: 'user', content: 'x' }] }),
+    ).rejects.toMatchObject({
       name: 'DeepSeekError',
       code: 'bad-json',
     });
@@ -78,7 +95,12 @@ describe('DeepSeekClient', () => {
         jsonResponse({
           is_available: true,
           balance_infos: [
-            { currency: 'CNY', total_balance: '12.30', granted_balance: '0', topped_up_balance: '12.30' },
+            {
+              currency: 'CNY',
+              total_balance: '12.30',
+              granted_balance: '0',
+              topped_up_balance: '12.30',
+            },
           ],
         })) as unknown as typeof fetch,
     });

@@ -1,11 +1,16 @@
 import type { ChatClient, ChatMessage } from '../api/types';
-import type { Lux3DClient } from '../api/lux3d';
+import { Lux3DError, type Lux3DClient } from '../api/lux3d';
 import {
   LEVEL_GENERATION_MAX_ATTEMPTS,
   LUX3D_CREDITS_PER_ITEM,
   targetAuthenticCount,
 } from '../config/constants';
-import { LEVEL_SYSTEM_PROMPT, buildLevelUserPrompt, buildRetryFeedback, renderPromptForTraits } from '../config/prompts';
+import {
+  LEVEL_SYSTEM_PROMPT,
+  buildLevelUserPrompt,
+  buildRetryFeedback,
+  renderPromptForTraits,
+} from '../config/prompts';
 import type { LevelJson } from '../types/level';
 import { LevelError } from '../types/level';
 import type { GameCache, ModelMap } from '../store/cache';
@@ -44,6 +49,38 @@ export interface GeneratedLevel {
 }
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+const sleepWithSignal = (ms: number, signal?: AbortSignal): Promise<void> =>
+  new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new Error('aborted'));
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      reject(new Error('aborted'));
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+
+const MODEL_GEN_ATTEMPTS = 2;
+
+/** 只重试"可能是抖动"的失败；鉴权 / 参数 / 积分不足重试也是白烧。 */
+function isRetryableModelError(error: unknown): boolean {
+  if (!(error instanceof Lux3DError)) return false;
+  if (error.code === 'task-failed' || error.code === 'timeout') return true;
+  if (error.code === undefined && /网络|超时/.test(error.message)) return true;
+  return false;
+}
+
+function isAbortError(error: unknown, signal?: AbortSignal): boolean {
+  if (signal?.aborted) return true;
+  return error instanceof Lux3DError && error.code === 'aborted';
+}
 
 function readingErrorMessage(error: unknown): string {
   if (error instanceof LevelSchemaError) return error.issues.join('；');
@@ -136,7 +173,9 @@ export async function generateLevel(
     }
   }
 
-  throw new LevelError(`关卡生成失败（已尝试 ${LEVEL_GENERATION_MAX_ATTEMPTS} 次）：${previousError ?? '未知错误'}`);
+  throw new LevelError(
+    `关卡生成失败（已尝试 ${LEVEL_GENERATION_MAX_ATTEMPTS} 次）：${previousError ?? '未知错误'}`,
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -217,21 +256,44 @@ export async function ensureLevelModels(
         return;
       }
 
-      emit('running', '集市布展中…');
-      try {
-        const prompt = renderPromptForTraits(stall.item.traits);
-        const result = await deps.lux3d.generateGlb(prompt, {
-          ...(hooks.signal ? { signal: hooks.signal } : {}),
-        });
-        creditsSpent += LUX3D_CREDITS_PER_ITEM;
-        await deps.cache?.saveModel(level.id, stall.itemId, result.blob);
-        models[stall.itemId] = result.blob;
-        emit('done', '生成完成');
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        errors[stall.itemId] = message;
+      if (hooks.signal?.aborted) {
         models[stall.itemId] = null;
-        emit('failed', message);
+        emit('skipped', '已停止布展');
+        return;
+      }
+
+      const prompt = renderPromptForTraits(stall.item.traits);
+      for (let attempt = 1; attempt <= MODEL_GEN_ATTEMPTS; attempt += 1) {
+        emit(
+          'running',
+          attempt === 1 ? '集市布展中…' : `失败重试中（${attempt}/${MODEL_GEN_ATTEMPTS}）`,
+        );
+        try {
+          const result = await deps.lux3d.generateGlb(prompt, {
+            ...(hooks.signal ? { signal: hooks.signal } : {}),
+          });
+          creditsSpent += LUX3D_CREDITS_PER_ITEM;
+          await deps.cache?.saveModel(level.id, stall.itemId, result.blob);
+          models[stall.itemId] = result.blob;
+          emit('done', '生成完成');
+          return;
+        } catch (error) {
+          if (isAbortError(error, hooks.signal)) {
+            models[stall.itemId] = null;
+            emit('skipped', '已停止布展');
+            return;
+          }
+          const retryable = isRetryableModelError(error);
+          if (retryable && attempt < MODEL_GEN_ATTEMPTS) {
+            await sleepWithSignal(1500, hooks.signal).catch(() => undefined);
+            continue;
+          }
+          const message = error instanceof Error ? error.message : String(error);
+          errors[stall.itemId] = message;
+          models[stall.itemId] = null;
+          emit('failed', message);
+          return;
+        }
       }
     }),
   );

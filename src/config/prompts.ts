@@ -106,7 +106,10 @@ export function buildLevelUserPrompt(input: LevelPromptInput): string {
 
 /** 失败重试时追加的定向反馈（M9：JSON mode + 校验 + 2 次定向重试）。 */
 export function buildRetryFeedback(issues: string[]): string {
-  const detail = issues.slice(0, 8).map((issue, index) => `${index + 1}. ${issue}`).join('\n');
+  const detail = issues
+    .slice(0, 8)
+    .map((issue, index) => `${index + 1}. ${issue}`)
+    .join('\n');
   return `上一次输出存在以下问题，请严格修正后重新输出完整的 JSON（不要只输出修改部分）：\n${detail}`;
 }
 
@@ -115,9 +118,7 @@ export function buildRetryFeedback(issues: string[]): string {
  * 这条模板来自方案 §五 实测（13 积分 / ~2 分钟 / GLB 有效），改动前先跑样件核验。
  */
 export function renderPromptForTraits(traits: Traits): string {
-  const base = traits.hasBase
-    ? 'mounted on a dark silver metallic base'
-    : 'free-floating';
+  const base = traits.hasBase ? 'mounted on a dark silver metallic base' : 'free-floating';
   return [
     `A fantasy treasure: ${traits.shape} in ${traits.color}`,
     `with ${traits.gemCount} small golden star gems embedded around its equator,`,
@@ -137,7 +138,9 @@ export interface FairyPromptContext {
     priceIndex: number;
     currencyName: string;
   };
-  creators: Array<Pick<CreatorProfile, 'name' | 'background' | 'reputationTier' | 'signatureTraits'>>;
+  creators: Array<
+    Pick<CreatorProfile, 'name' | 'background' | 'reputationTier' | 'signatureTraits'>
+  >;
   tamperTypes: TamperType[];
   fairy: Pick<FairyProfile, 'name' | 'persona'>;
 }
@@ -198,11 +201,7 @@ export function buildBargainSystemPrompt(stall: Stall): string {
 4. accept=true 表示成交，此后价格不再更改；accept=false 表示这次报价被拒。`;
 }
 
-export function buildBargainUserPrompt(
-  stall: Stall,
-  offer: number,
-  round: number,
-): string {
+export function buildBargainUserPrompt(stall: Stall, offer: number, round: number): string {
   const ratio = Math.round((offer / Math.max(1, stall.economy.salePrice)) * 100);
   return [
     `珍宝：${stall.item.name}`,

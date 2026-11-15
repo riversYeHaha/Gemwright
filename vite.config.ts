@@ -10,6 +10,8 @@ export default defineConfig({
     target: 'es2022',
     outDir: 'dist',
     sourcemap: true,
+    // three.js 已拆成独立 viewer chunk（按需加载），650KB 是这个 chunk 的预期体积。
+    chunkSizeWarningLimit: 700,
   },
   server: {
     port: 5173,

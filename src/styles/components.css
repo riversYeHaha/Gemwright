@@ -434,3 +434,83 @@
     transform: translateX(100%);
   }
 }
+
+/* ---------- 教学引导 ---------- */
+
+.coach {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.8rem 0.95rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(246, 183, 60, 0.32);
+  background:
+    radial-gradient(600px 200px at 0% 0%, rgba(246, 183, 60, 0.12), transparent 70%),
+    rgba(11, 14, 22, 0.8);
+}
+
+.coach__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.coach__kicker {
+  font-size: 0.72rem;
+  letter-spacing: 0.24em;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+
+.coach__progress {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--gold);
+}
+
+.coach__steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.coach-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--faint);
+  font-size: 0.76rem;
+  transition: all 0.2s ease;
+}
+
+.coach-step__index {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  opacity: 0.8;
+}
+
+.coach-step--done {
+  color: var(--teal);
+  border-color: rgba(94, 234, 212, 0.35);
+  background: rgba(94, 234, 212, 0.07);
+}
+
+.coach-step--current {
+  color: var(--gold);
+  border-color: rgba(246, 183, 60, 0.55);
+  background: var(--gold-soft);
+  box-shadow: 0 0 0 1px rgba(246, 183, 60, 0.18);
+}
+
+.coach__hint {
+  font-size: 0.84rem;
+  color: var(--muted);
+  line-height: 1.7;
+}

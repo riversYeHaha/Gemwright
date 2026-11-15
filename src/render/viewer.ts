@@ -75,7 +75,6 @@ export class TreasureViewer {
       renderer.domElement.className = 'viewer-canvas';
       container.appendChild(renderer.domElement);
     } catch {
-      renderer = null;
       container.classList.add('viewer--unsupported');
       container.textContent = '当前环境不支持 WebGL，无法检视 3D 珍宝。';
     }
@@ -140,7 +139,10 @@ export class TreasureViewer {
       entry.material.opacity = entry.targetOpacity * progress;
       entry.material.transparent = progress < 1 || entry.targetOpacity < 1;
     }
-    if (this.fadeEntries.length > 0 && this.fadeEntries.every((entry) => now - entry.start >= 0.6)) {
+    if (
+      this.fadeEntries.length > 0 &&
+      this.fadeEntries.every((entry) => now - entry.start >= 0.6)
+    ) {
       this.fadeEntries = [];
     }
     this.controls?.update();
@@ -219,14 +221,21 @@ export class TreasureViewer {
       color: 0xffd166,
       metalness: 0.55,
       roughness: 0.25,
-      emissive: 0x8a5b00,
-      emissiveIntensity: 0.5,
+      emissive: 0xffa000,
+      emissiveIntensity: 0.75,
+      // 占位模型的首要任务是"数得清"：让星砂穿透本体显示，
+      // 否则背面的星砂会被晶体挡住，7 颗看上去只有 6 颗。
+      depthTest: false,
+      transparent: true,
+      opacity: 0.96,
     });
     const count = Math.max(1, Math.min(9, traits.gemCount));
     for (let index = 0; index < count; index += 1) {
       const angle = (index / count) * Math.PI * 2;
-      const gem = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 16), gemMaterial);
-      gem.position.set(Math.cos(angle) * 1.58, Math.sin(angle * 3) * 0.06, Math.sin(angle) * 1.58);
+      // 交替高低 + 略大于本体轮廓：占位模型必须"数得清"，
+      // 否则教学关卡里 7 颗 vs 6 颗的判定就不成立。
+      const gem = new THREE.Mesh(new THREE.SphereGeometry(0.17, 16, 16), gemMaterial);
+      gem.position.set(Math.cos(angle) * 1.72, Math.sin(angle * 2) * 0.7, Math.sin(angle) * 1.72);
       group.add(gem);
     }
 

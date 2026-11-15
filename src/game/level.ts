@@ -33,13 +33,18 @@ export class LevelSession {
   readonly level: LevelJson;
   player: PlayerState;
   readonly startedAt: number;
-  private readonly runtime: LevelRuntime;
+  private runtime: LevelRuntime;
 
-  constructor(level: LevelJson, player: PlayerState, startedAt = Date.now()) {
+  constructor(
+    level: LevelJson,
+    player: PlayerState,
+    startedAt = Date.now(),
+    runtime?: LevelRuntime,
+  ) {
     this.level = level;
     this.player = player;
     this.startedAt = startedAt;
-    this.runtime = {
+    this.runtime = runtime ?? {
       levelId: level.id,
       difficulty: level.difficulty,
       phase: 'market',
@@ -59,6 +64,30 @@ export class LevelSession {
       fairyLog: [],
       startedAt,
     };
+  }
+
+  /** 从刷新前的快照恢复一局（只做最小自愈：缺件补齐、额度不低于已用）。 */
+  static fromRuntime(level: LevelJson, player: PlayerState, runtime: LevelRuntime): LevelSession {
+    const items: Record<string, ItemRuntime> = {};
+    for (const stall of level.stalls) {
+      items[stall.itemId] = runtime.items[stall.itemId] ?? {
+        itemId: stall.itemId,
+        status: 'listed',
+        offers: [],
+        rejectedPrices: [],
+      };
+    }
+    const restored: LevelRuntime = {
+      ...runtime,
+      levelId: level.id,
+      difficulty: level.difficulty,
+      items,
+      phase: runtime.phase ?? 'market',
+      offersUsed: Math.max(0, runtime.offersUsed ?? 0),
+      askUsed: Math.max(0, runtime.askUsed ?? 0),
+      fairyLog: runtime.fairyLog ?? [],
+    };
+    return new LevelSession(level, player, restored.startedAt, restored);
   }
 
   get state(): Readonly<LevelRuntime> {
@@ -179,6 +208,28 @@ export class LevelSession {
       at: Date.now(),
     });
     return { answer, remaining: this.fairyQuota - this.runtime.askUsed };
+  }
+
+  /**
+   * 教学关卡的剧本化问答：不调用模型，但仍消耗询问额度、仍走守卫与日志，
+   * 让"信息也是资源"这件事在离线教学里也成立。
+   */
+  askScripted(
+    question: string,
+    answer: string,
+    blocked: boolean,
+  ): { answer: FairyAnswer; remaining: number } {
+    let remaining = this.fairyQuota - this.runtime.askUsed;
+    if (this.runtime.phase !== 'market') {
+      return { answer: { answer: '回基地真相就揭晓了，还用问我？', blocked: true }, remaining };
+    }
+    if (this.runtime.askUsed >= this.fairyQuota) {
+      return { answer: { answer: '今天的嘴皮子用完了。', blocked: true }, remaining: 0 };
+    }
+    this.runtime.askUsed += 1;
+    this.runtime.fairyLog.push({ question, answer, blocked, at: Date.now() });
+    remaining = this.fairyQuota - this.runtime.askUsed;
+    return { answer: { answer, blocked }, remaining };
   }
 
   /** 主动收摊 / 自动结束：进入基地阶段。 */

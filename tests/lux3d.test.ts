@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { LUX3D_BASES, Lux3DClient, Lux3DError, estimateCredits, pickGlbUrl } from '../src/api/lux3d';
+import {
+  LUX3D_BASES,
+  Lux3DClient,
+  Lux3DError,
+  estimateCredits,
+  pickGlbUrl,
+} from '../src/api/lux3d';
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -74,7 +80,10 @@ describe('Lux3DClient', () => {
     const failing = new Lux3DClient({
       apiKey: 'k',
       fetchImpl: (async () =>
-        jsonResponse({ c: '0', d: { taskId: 1, status: 4, outputs: [], errorMsg: '爆显存了' } })) as unknown as typeof fetch,
+        jsonResponse({
+          c: '0',
+          d: { taskId: 1, status: 4, outputs: [], errorMsg: '爆显存了' },
+        })) as unknown as typeof fetch,
       pollIntervalMs: 1,
       timeoutMs: 500,
     });
@@ -85,7 +94,8 @@ describe('Lux3DClient', () => {
 
     const badAuth = new Lux3DClient({
       apiKey: 'k',
-      fetchImpl: (async () => jsonResponse({ c: '401', m: 'invalid appKey' })) as unknown as typeof fetch,
+      fetchImpl: (async () =>
+        jsonResponse({ c: '401', m: 'invalid appKey' })) as unknown as typeof fetch,
     });
     await expect(badAuth.createTextTo3D('x')).rejects.toBeInstanceOf(Lux3DError);
   });

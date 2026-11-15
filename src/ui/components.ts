@@ -1,4 +1,4 @@
-import { navigate } from '../app/actions';
+import { goStart, navigate } from '../app/actions';
 import type { AppState, SlotProgress } from '../app/store';
 import { labelOfStatus } from '../app/store';
 import type { Notice } from '../app/store';
@@ -30,7 +30,9 @@ export function topbar(state: AppState): HTMLElement {
       statPill('等级', `Lv.${state.player.level}`, `${state.player.xp} 经验`),
       h('span', {
         class: `dot ${state.settings.deepseekKey ? 'dot--on' : 'dot--off'}`,
-        attrs: { title: state.settings.deepseekKey ? 'DeepSeek Key 已配置' : '未配置 DeepSeek Key' },
+        attrs: {
+          title: state.settings.deepseekKey ? 'DeepSeek Key 已配置' : '未配置 DeepSeek Key',
+        },
       }),
       h('span', {
         class: `dot ${state.settings.lux3dKey ? 'dot--on' : 'dot--off'}`,
@@ -40,6 +42,7 @@ export function topbar(state: AppState): HTMLElement {
     h(
       'nav',
       { class: 'topbar__nav' },
+      button('开始页', { variant: 'ghost', onClick: () => goStart() }),
       hasLevel ? button('集市', { variant: 'ghost', onClick: () => navigate('market') }) : null,
       hasLevel ? button('基地', { variant: 'ghost', onClick: () => navigate('base') }) : null,
       button('设置', { variant: 'ghost', onClick: () => navigate('settings') }),
@@ -61,7 +64,12 @@ export function screenHead(title: string, subtitle?: string, right?: HTMLElement
   return h(
     'div',
     { class: 'screen-head' },
-    h('div', null, h('h1', { class: 'screen-head__title', text: title }), subtitle ? h('p', { class: 'screen-head__sub', text: subtitle }) : null),
+    h(
+      'div',
+      null,
+      h('h1', { class: 'screen-head__title', text: title }),
+      subtitle ? h('p', { class: 'screen-head__sub', text: subtitle }) : null,
+    ),
     right && right.length > 0 ? h('div', { class: 'screen-head__actions' }, ...right) : null,
   );
 }
@@ -90,31 +98,45 @@ export function traitTable(traits: Traits): HTMLElement {
   return h(
     'dl',
     { class: 'trait-table' },
-    ...rows.flatMap(([label, value]) => [
-      h('dt', { text: label }),
-      h('dd', { text: value }),
-    ]),
+    ...rows.flatMap(([label, value]) => [h('dt', { text: label }), h('dd', { text: value })]),
   );
 }
 
-export function progressSlots(busy: { slots: SlotProgress[]; ratio: number; message: string; logs: string[] }): HTMLElement {
+export function progressSlots(busy: {
+  slots: SlotProgress[];
+  ratio: number;
+  message: string;
+  logs: string[];
+}): HTMLElement {
   return h(
     'div',
     { class: 'booth' },
-    h('div', { class: 'booth__head' }, h('span', { text: busy.message }), h('span', { class: 'mono', text: `${Math.round(busy.ratio * 100)}%` })),
+    h(
+      'div',
+      { class: 'booth__head' },
+      h('span', { text: busy.message }),
+      h('span', { class: 'mono', text: `${Math.round(busy.ratio * 100)}%` }),
+    ),
     h(
       'div',
       { class: 'booth__slots' },
       ...busy.slots.map((slot) =>
         h(
           'div',
-          { class: `booth-slot booth-slot--${slot.status}`, attrs: { title: slot.message ?? labelOfStatus(slot.status) } },
+          {
+            class: `booth-slot booth-slot--${slot.status}`,
+            attrs: { title: slot.message ?? labelOfStatus(slot.status) },
+          },
           h('span', { class: 'booth-slot__name', text: slot.name }),
           h('span', { class: 'booth-slot__status', text: labelOfStatus(slot.status) }),
         ),
       ),
     ),
-    h('ul', { class: 'booth__logs' }, ...busy.logs.slice(-5).map((line) => h('li', { text: line }))),
+    h(
+      'ul',
+      { class: 'booth__logs' },
+      ...busy.logs.slice(-5).map((line) => h('li', { text: line })),
+    ),
   );
 }
 

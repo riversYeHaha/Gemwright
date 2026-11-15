@@ -1,4 +1,4 @@
-import type { LevelJson, PlayerState } from '../types/level';
+import type { ActiveRunSnapshot, LevelJson, PlayerState } from '../types/level';
 
 /**
  * 大件缓存（方案 §二 M8）：IndexedDB 存关卡 JSON + GLB blob + 玩家存档。
@@ -13,6 +13,8 @@ const DB_VERSION = 1;
 const LEVEL_STORE = 'levels';
 const MODEL_STORE = 'models';
 export const PROFILE_STORAGE_KEY = 'gemwright.profile.v1';
+export const ACTIVE_RUN_KEY = 'gemwright.run.v1';
+export const TUTORIAL_DONE_KEY = 'gemwright.tutorial.v1';
 
 interface ModelRecord {
   key: string;
@@ -234,4 +236,62 @@ export function saveProfile(profile: PlayerState): void {
 
 export function clearProfile(): void {
   storage()?.removeItem(PROFILE_STORAGE_KEY);
+}
+
+/* ------------------------------------------------------------------ */
+/* 刷新续玩（active run）与教学完成标记                                  */
+/* ------------------------------------------------------------------ */
+
+function isActiveRunSnapshot(value: unknown): value is ActiveRunSnapshot {
+  if (!value || typeof value !== 'object') return false;
+  const record = value as Partial<ActiveRunSnapshot>;
+  if (record.version !== 1) return false;
+  if (!record.level || typeof record.level.id !== 'string') return false;
+  if (!record.runtime || typeof record.runtime !== 'object') return false;
+  if (!record.runtime.items || typeof record.runtime.items !== 'object') return false;
+  if (typeof record.player?.funds !== 'number') return false;
+  return true;
+}
+
+export function saveActiveRun(snapshot: ActiveRunSnapshot): void {
+  try {
+    storage()?.setItem(ACTIVE_RUN_KEY, JSON.stringify(snapshot));
+  } catch {
+    // 配额满 / 隐私模式：续玩是增强项，失败不影响当前这局。
+  }
+}
+
+export function loadActiveRun(): ActiveRunSnapshot | null {
+  const raw = storage()?.getItem(ACTIVE_RUN_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return isActiveRunSnapshot(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearActiveRun(): void {
+  try {
+    storage()?.removeItem(ACTIVE_RUN_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+export function isTutorialCompleted(): boolean {
+  try {
+    return storage()?.getItem(TUTORIAL_DONE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function markTutorialCompleted(): void {
+  try {
+    storage()?.setItem(TUTORIAL_DONE_KEY, '1');
+  } catch {
+    // ignore
+  }
 }

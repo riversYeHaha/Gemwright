@@ -1,0 +1,8 @@
+dist
+node_modules
+.npm-cache
+.npm-logs
+.verify
+coverage
+package-lock.json
+docs/screenshots

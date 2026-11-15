@@ -194,7 +194,12 @@ export class Lux3DClient {
     if (!data || typeof data !== 'object') {
       throw new Lux3DError('查询任务返回了异常数据');
     }
-    const record = data as { taskId?: number | string; status?: number; outputs?: unknown; errorMsg?: string };
+    const record = data as {
+      taskId?: number | string;
+      status?: number;
+      outputs?: unknown;
+      errorMsg?: string;
+    };
     if (typeof record.status !== 'number') {
       throw new Lux3DError('任务状态缺失');
     }

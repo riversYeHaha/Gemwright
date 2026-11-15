@@ -149,7 +149,11 @@ export class DeepSeekClient implements ChatClient {
   async jsonChat(
     options: ChatOptions,
   ): Promise<{ data: unknown; raw: string; usage?: ChatResult['usage'] }> {
-    const result = await this.chat({ ...options, json: true, temperature: options.temperature ?? 0.7 });
+    const result = await this.chat({
+      ...options,
+      json: true,
+      temperature: options.temperature ?? 0.7,
+    });
     const raw = stripFences(result.content);
     try {
       return { data: JSON.parse(raw) as unknown, raw, usage: result.usage };

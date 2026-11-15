@@ -9,13 +9,7 @@ import {
   START_FUNDS,
   XP_PER_LEVEL,
 } from '../config/constants';
-import type {
-  LevelRuntime,
-  PlayerState,
-  RecyclePlan,
-  Settlement,
-  Stall,
-} from '../types/level';
+import type { LevelRuntime, PlayerState, RecyclePlan, Settlement, Stall } from '../types/level';
 
 /** 等级 = 1 + ⌊经验 / 800⌋（经验即净收益，负收益不扣级）。 */
 export function levelForXp(xp: number): number {
@@ -38,7 +32,7 @@ export function fairyQuota(level: number): number {
 
 export function spendSoFar(runtime: LevelRuntime): number {
   return Object.values(runtime.items).reduce(
-    (sum, item) => sum + (item.status === 'purchased' ? item.purchasePrice ?? 0 : 0),
+    (sum, item) => sum + (item.status === 'purchased' ? (item.purchasePrice ?? 0) : 0),
     0,
   );
 }
@@ -79,7 +73,7 @@ export function settleLevel(
   for (const stall of level.stalls) {
     const itemRuntime = runtime.items[stall.itemId];
     const purchased = itemRuntime?.status === 'purchased';
-    const price = purchased ? itemRuntime.purchasePrice ?? 0 : 0;
+    const price = purchased ? (itemRuntime.purchasePrice ?? 0) : 0;
     const recycled = purchased && (planMap.get(stall.itemId) ?? true);
     const value = recycled ? recycleValueOf(stall) : 0;
     const fee = recycled ? RECYCLE_FEE : 0;
@@ -162,7 +156,7 @@ export function checkMarketEnd(
     return { end: true, reason: 'out-of-funds', message: '盘缠所剩无几，连最低的底价都够不上了。' };
   }
   if (!unresolved) {
-    return { end: true, reason: 'all-resolved', message: '街上已没有你出得起的货，该收摊了。' };
+    return { end: true, reason: 'all-resolved', message: '街上已经没有可议的货了，该收摊了。' };
   }
   return { end: false };
 }

@@ -56,7 +56,13 @@ describe('问题与回答清洗', () => {
   });
 
   it('回答出现件数编号时整段替换为挡回语', () => {
-    for (const text of ['第 3 件是假的', '第三件绝对有问题', 'T2 是仿品', '编号 4 的那件别买', '珍宝 5 值得收']) {
+    for (const text of [
+      '第 3 件是假的',
+      '第三件绝对有问题',
+      'T2 是仿品',
+      '编号 4 的那件别买',
+      '珍宝 5 值得收',
+    ]) {
       const result = filterAnswer(text);
       expect(result.blocked).toBe(true);
       expect(result.answer).toBe(BLOCKED_ANSWER);

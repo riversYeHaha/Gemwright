@@ -41,11 +41,28 @@ function ctx(overrides: Partial<OfferContext> = {}): OfferContext {
 describe('checkOffer', () => {
   it('额度耗尽 / 回合超限 / 资金不足 / 已购 都拦下', () => {
     expect(checkOffer(ctx({ offersUsed: 10 }))).toMatchObject({ ok: false, code: 'no-quota' });
-    expect(checkOffer(ctx({ item: item({ offers: [1, 2, 3, 4].map(() => ({ price: 1, accepted: false, round: 1, source: 'local' as const, at: 0 })) }) }))).toMatchObject({
+    expect(
+      checkOffer(
+        ctx({
+          item: item({
+            offers: [1, 2, 3, 4].map(() => ({
+              price: 1,
+              accepted: false,
+              round: 1,
+              source: 'local' as const,
+              at: 0,
+            })),
+          }),
+        }),
+      ),
+    ).toMatchObject({
       ok: false,
       code: 'round-cap',
     });
-    expect(checkOffer(ctx({ offer: 5000 }))).toMatchObject({ ok: false, code: 'insufficient-funds' });
+    expect(checkOffer(ctx({ offer: 5000 }))).toMatchObject({
+      ok: false,
+      code: 'insufficient-funds',
+    });
     expect(checkOffer(ctx({ item: item({ status: 'purchased' }) }))).toMatchObject({
       ok: false,
       code: 'already-purchased',

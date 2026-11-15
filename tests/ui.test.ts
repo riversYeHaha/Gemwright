@@ -14,7 +14,12 @@ function state(overrides: Partial<AppState> = {}): AppState {
     ...bootstrapState(),
     settings: { ...DEFAULT_SETTINGS, deepseekKey: 'sk-test', lux3dKey: '' },
     player: { funds: 1000, xp: 0, level: 1 },
-    nextSeed: { id: 'S01', genre: '熔岩锻造城邦', priceIndexRange: [1.25, 1.6], mood: '铁水昼夜不息' },
+    nextSeed: {
+      id: 'S01',
+      genre: '熔岩锻造城邦',
+      priceIndexRange: [1.25, 1.6],
+      mood: '铁水昼夜不息',
+    },
     ...overrides,
   };
 }

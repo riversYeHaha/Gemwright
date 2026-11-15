@@ -1,4 +1,4 @@
-import type { BargainDecision, LevelJson } from '../types/level';
+import type { BargainDecision, LevelJson, TutorialProgress } from '../types/level';
 import type { ClientSettings } from '../store/settings';
 import type { PlayerState } from '../types/level';
 import type { ModelStatus, ModelProgress } from '../game/generation';
@@ -8,7 +8,7 @@ import { pickSeed, type WorldSeed } from '../game/seeds';
 import { DEFAULT_SETTINGS } from '../store/settings';
 
 /** 5 屏：设置 / 穿越 / 集市（含精灵侧栏）/ 验货 / 基地。 */
-export type ScreenName = 'settings' | 'travel' | 'market' | 'inspect' | 'base';
+export type ScreenName = 'start' | 'settings' | 'travel' | 'market' | 'inspect' | 'base';
 
 export interface SlotProgress {
   itemId: string;
@@ -50,6 +50,12 @@ export interface AppState {
   recyclePlan: Record<string, boolean>;
   demoMode: boolean;
   attempts: number;
+  /** 是否有可续玩的关卡（刷新后从 active run 恢复）。 */
+  resumeAvailable: boolean;
+  /** 教学关卡进度（仅教学关有效；刷新不保留）。 */
+  tutorial: TutorialProgress;
+  /** 教学是否已经完整通关过（localStorage）。 */
+  tutorialCompleted: boolean;
 }
 
 export type Listener = (state: AppState) => void;
@@ -100,7 +106,11 @@ export function applyModelProgress(busy: BusyState, progress: ModelProgress): Bu
       : slot,
   );
   const done = slots.filter(
-    (slot) => slot.status === 'done' || slot.status === 'cached' || slot.status === 'failed' || slot.status === 'skipped',
+    (slot) =>
+      slot.status === 'done' ||
+      slot.status === 'cached' ||
+      slot.status === 'failed' ||
+      slot.status === 'skipped',
   ).length;
   const logs = [
     ...busy.logs,
@@ -131,7 +141,6 @@ export function labelOfStatus(status: ModelStatus): string {
   }
 }
 
-
 /** 全局单例：main.ts 启动时用 bootstrapState() 覆盖为真实存档。 */
 function defaultState(): AppState {
   return {
@@ -153,6 +162,9 @@ function defaultState(): AppState {
     recyclePlan: {},
     demoMode: false,
     attempts: 0,
+    resumeAvailable: false,
+    tutorial: { inspected: [], openedMarket: false },
+    tutorialCompleted: false,
   };
 }
 
