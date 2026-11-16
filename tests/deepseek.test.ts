@@ -110,6 +110,20 @@ describe('DeepSeekClient', () => {
     });
   });
 
+  it('以 globalThis 为 this 调用 fetch（修复浏览器 Illegal invocation）', async () => {
+    let thisWasGlobal = false;
+    const nativeLike = function (this: unknown) {
+      thisWasGlobal = this === globalThis;
+      return Promise.resolve(jsonResponse({ choices: [{ message: { content: 'ok' } }] }));
+    };
+    const client = new DeepSeekClient({
+      apiKey: 'k',
+      fetchImpl: nativeLike as unknown as typeof fetch,
+    });
+    await client.chat({ messages: [{ role: 'user', content: 'hi' }] });
+    expect(thisWasGlobal).toBe(true);
+  });
+
   it('缺少 Key 直接抛错', () => {
     expect(() => new DeepSeekClient({ apiKey: '  ' })).toThrow(DeepSeekError);
   });

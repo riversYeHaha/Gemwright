@@ -125,7 +125,8 @@ export class Lux3DClient {
     if (!options.apiKey.trim()) throw new Lux3DError('缺少 Lux3D API Key');
     this.apiKey = options.apiKey.trim();
     this.baseUrl = (options.baseUrl ?? LUX3D_BASES[options.region ?? 'china']).replace(/\/+$/, '');
-    this.fetchImpl = options.fetchImpl ?? fetch;
+    // 同 DeepSeek：原生 fetch 不能以实例为 this 调用，必须绑定 globalThis。
+    this.fetchImpl = (options.fetchImpl ?? globalThis.fetch).bind(globalThis);
     this.pollIntervalMs = options.pollIntervalMs ?? LUX3D_POLL_INTERVAL_MS;
     this.timeoutMs = options.timeoutMs ?? LUX3D_TASK_TIMEOUT_MS;
   }
@@ -142,8 +143,10 @@ export class Lux3DClient {
       if (error instanceof DOMException && error.name === 'AbortError') {
         throw new Lux3DError('生成已取消', 'aborted');
       }
+      const detail = error instanceof Error ? error.message : String(error);
       throw new Lux3DError(
-        `Lux3D 网络错误：${error instanceof Error ? error.message : String(error)}`,
+        `Lux3D 网络错误：${detail}。常见原因：Key 无效、地区选错或积分不足——` +
+          'Lux3D 的错误响应未带 CORS 头，浏览器只能看到 Failed to fetch。',
       );
     }
 

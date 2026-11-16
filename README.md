@@ -101,7 +101,7 @@
 | 3D | **Three.js 0.187**（OrbitControls + GLTFLoader），**动态 import 成独立 chunk** | 首屏不背 3D 引擎：主包 ~62KB gzip，3D chunk 按需加载 |
 | 校验 | **Zod 4** | schema 失败信息直接回灌 LLM 做定向重试 |
 | 存储 | **localStorage + IndexedDB** | Key / 存档 / 续玩快照走 localStorage；关卡 JSON 与 GLB blob 走 IndexedDB |
-| 测试 | **Vitest 5 + happy-dom** | 15 个测试文件 / 78 个用例 |
+| 测试 | **Vitest 5 + happy-dom** | 15 个测试文件 / 81 个用例 |
 | 工程化 | **ESLint 10（flat config）+ Prettier 3** | `npm run verify` 串起 typecheck → lint → test → build |
 | 样式 | **原生 CSS + 设计 token** | 按 token / base / 组件 / 屏幕分层，无 Tailwind 构建链 |
 
@@ -155,7 +155,7 @@ Gemwright/
 │   │   ├── components.ts         顶栏 / 面板 / 徽章 / 特征表 / 布展进度
 │   │   ├── tutorial.ts           教学六步引导（复用组件）
 │   │   └── screens/              start / settings / travel / market / inspect / base
-├── tests/                        15 个测试文件 / 78 个用例
+├── tests/                        15 个测试文件 / 81 个用例
 └── docs/
     ├── 珍宝猎人-方案v8-MVP.md     权威方案 v8.1
     ├── 开发指南.md                模块职责、数据流、不变量、扩展方式
@@ -197,7 +197,7 @@ public/models/manifest.json → loadLocalModel() → GLB Blob → TreasureViewer
 npm install
 npm run dev         # http://127.0.0.1:5173
 npm run build       # 产物 dist/，相对路径，可直接静态托管
-npm run test        # Vitest：78 个用例
+npm run test        # Vitest：81 个用例
 npm run lint        # ESLint（flat config）
 npm run format      # Prettier 写回 src/tests/配置
 npm run verify      # typecheck + lint + test + build（提交前一键）
@@ -302,7 +302,7 @@ npm run models
 npm run verify
 # tsc --noEmit ✓（strict + noUnusedLocals）
 # eslint ✓（flat config）
-# vitest: 15 files / 78 tests ✓
+# vitest: 15 files / 81 tests ✓
 # vite build: dist/ ✓
 #   主包 index-*.js  ~186KB / gzip ~62KB
 #   3D chunk viewer-*.js ~651KB / gzip ~163KB（按需加载）

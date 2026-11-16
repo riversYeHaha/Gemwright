@@ -100,6 +100,30 @@ describe('Lux3DClient', () => {
     await expect(badAuth.createTextTo3D('x')).rejects.toBeInstanceOf(Lux3DError);
   });
 
+  it('以 globalThis 为 this 调用 fetch（修复浏览器 Illegal invocation）', async () => {
+    let thisWasGlobal = false;
+    const nativeLike = function (this: unknown) {
+      thisWasGlobal = this === globalThis;
+      return Promise.resolve(jsonResponse({ c: '0', d: 1 }));
+    };
+    const client = new Lux3DClient({
+      apiKey: 'k',
+      fetchImpl: nativeLike as unknown as typeof fetch,
+    });
+    await client.createTextTo3D('x');
+    expect(thisWasGlobal).toBe(true);
+  });
+
+  it('网络失败给出 Key / 地区 / CORS 的可操作提示', async () => {
+    const client = new Lux3DClient({
+      apiKey: 'k',
+      fetchImpl: (async () => {
+        throw new TypeError('Failed to fetch');
+      }) as unknown as typeof fetch,
+    });
+    await expect(client.createTextTo3D('x')).rejects.toThrow(/Key 无效.*CORS/s);
+  });
+
   it('pickGlbUrl / estimateCredits', () => {
     expect(pickGlbUrl(['https://a/x.png', 'https://a/y.glb?t=1'])).toBe('https://a/y.glb?t=1');
     expect(pickGlbUrl(['https://a/x.png'])).toBeNull();

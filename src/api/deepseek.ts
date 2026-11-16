@@ -68,7 +68,9 @@ export class DeepSeekClient implements ChatClient {
     if (!options.apiKey.trim()) throw new DeepSeekError('缺少 DeepSeek API Key');
     this.baseUrl = (options.baseUrl ?? DEEPSEEK_BASE_URL).replace(/\/+$/, '');
     this.apiKey = options.apiKey.trim();
-    this.fetchImpl = options.fetchImpl ?? fetch;
+    // 浏览器原生 fetch 必须以 window / globalThis 为 this 调用，
+    // 否则会抛 "Failed to execute 'fetch' on 'Window': Illegal invocation"。
+    this.fetchImpl = (options.fetchImpl ?? globalThis.fetch).bind(globalThis);
     this.timeoutMs = options.timeoutMs ?? 120_000;
   }
 
