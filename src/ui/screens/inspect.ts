@@ -11,6 +11,21 @@ import { tutorialCoach } from '../tutorial';
  */
 
 let activeViewer: TreasureViewer | null = null;
+
+const loadViewerModule = () => import('../../render/viewer');
+
+type ViewerModule = Awaited<ReturnType<typeof loadViewerModule>>;
+
+/** 动态 import 重试一次：Vite 首次发现新依赖时会重新优化并刷新页面，可能打断在飞的 import。 */
+async function importViewerModule(attempt = 0): Promise<ViewerModule> {
+  try {
+    return await loadViewerModule();
+  } catch (error) {
+    if (attempt >= 1) throw error;
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    return importViewerModule(attempt + 1);
+  }
+}
 /** three.js 动态 import 的竞态令牌：重绘后旧的加载结果直接丢弃。 */
 let viewerToken = 0;
 
@@ -75,8 +90,9 @@ export function renderInspect(state: AppState): HTMLElement {
   setTimeout(() => fog.remove(), 1600);
 
   // three.js 单独成 chunk：集市 / 穿越 / 开始页首屏不背 3D 引擎。
+  // 首次加载失败时自动重试一次（Vite 重新优化依赖的瞬间常见），仍失败再提示刷新。
   const token = (viewerToken += 1);
-  void import('../../render/viewer')
+  void importViewerModule()
     .then(({ TreasureViewer: Viewer }) => {
       if (token !== viewerToken || !viewerHost.isConnected) return;
       loading.remove();
@@ -86,7 +102,8 @@ export function renderInspect(state: AppState): HTMLElement {
     })
     .catch((error: unknown) => {
       console.warn('[inspect] 3D 模块加载失败', error);
-      loading.textContent = '3D 模块加载失败，请刷新重试。';
+      loading.textContent =
+        '3D 模块加载失败：请强制刷新（Cmd/Ctrl+Shift+R）；若刚更新过依赖，请重启 npm run dev。';
     });
 
   const layout = h(
