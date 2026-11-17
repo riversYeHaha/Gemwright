@@ -6,10 +6,10 @@ import './styles/tokens.css';
 import './styles/base.css';
 import './styles/components.css';
 import './styles/screens.css';
-import './styles/landing.css';
+import './styles/start.css';
 
 /**
- * 入口：读本机设置 / 存档 → 挂载 5 屏应用。
+ * 入口：读本机设置 / 存档 → 挂载 8 屏应用。
  * 纯静态站，无后端；Key 只在浏览器里。
  */
 function boot(): void {

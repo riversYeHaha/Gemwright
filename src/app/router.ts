@@ -2,15 +2,20 @@ import type { AppState, ScreenName } from './store';
 import { store } from './store';
 import { disposeInspectViewer, renderInspect } from '../ui/screens/inspect';
 import { renderBase } from '../ui/screens/base';
+import { renderGuide } from '../ui/screens/guide';
 import { renderMarket } from '../ui/screens/market';
+import { renderNewGame } from '../ui/screens/newgame';
 import { renderSettings } from '../ui/screens/settings';
 import { renderStart } from '../ui/screens/start';
 import { renderTravel } from '../ui/screens/travel';
+import { disposeStartBackdrop } from '../render/startBackdrop';
 import { topbar } from '../ui/components';
 import { h } from '../ui/dom';
 
 const renderers: Record<ScreenName, (state: AppState) => HTMLElement> = {
   start: renderStart,
+  newgame: renderNewGame,
+  guide: renderGuide,
   settings: renderSettings,
   travel: renderTravel,
   market: renderMarket,
@@ -18,11 +23,12 @@ const renderers: Record<ScreenName, (state: AppState) => HTMLElement> = {
   base: renderBase,
 };
 
-/** 极简状态路由：store 变化即重绘当前屏；离开验货屏先释放 WebGL 资源。 */
+/** 极简状态路由：store 变化即重绘当前屏；离开验货 / 开始页先释放重资源。 */
 export function initApp(root: HTMLElement): void {
   const render = (): void => {
     const state = store.get();
     disposeInspectViewer();
+    disposeStartBackdrop();
     const screen = renderers[state.screen](state);
     const isLanding = state.screen === 'start';
     root.replaceChildren(

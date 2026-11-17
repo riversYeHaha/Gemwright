@@ -848,30 +848,11 @@
   }
 }
 
-/* ---------- 开始页进场 ---------- */
-
-.landing__copy > * {
-  animation: screen-in 0.5s ease both;
-}
-
-.landing__copy > *:nth-child(2) {
-  animation-delay: 0.05s;
-}
-
-.landing__copy > *:nth-child(3) {
-  animation-delay: 0.1s;
-}
-
-.landing__copy > *:nth-child(4) {
-  animation-delay: 0.16s;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .loot-card--reveal,
   .viewer-fog,
   .warp__ring,
   .warp__core,
-  .landing__copy > *,
   .decision,
   .decision--no {
     animation: none;

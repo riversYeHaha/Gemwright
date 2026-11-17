@@ -6,12 +6,12 @@
 
 > **你以为你在砍价，其实你在鉴定。**
 
-- 当前阶段：**开始页 + 教学关卡 + 完整闭环**。零 Key 也能玩（教学 / 演示关卡）；填入 Key 后先跑初始化脚本生成预置 3D 模型。
+- 当前阶段：**开始画面 + 教学关卡 + 完整闭环**。零 Key 也能玩（教学 / 演示关卡）；填入 Key 后先跑初始化脚本生成预置 3D 模型。
 - **预置模型不入库**：仓库只带生成脚本与提示词，模型由玩家用自己的 Lux3D Key 生成到 `public/models/`（已在 `.gitignore`）。
 - 权威方案：[docs/珍宝猎人-方案v8-MVP.md](docs/珍宝猎人-方案v8-MVP.md)（v8.1）
 - 开发指南：[docs/开发指南.md](docs/开发指南.md)
 
-![开始页](docs/screenshots/start.jpg)
+![开始画面](docs/screenshots/start.jpg)
 
 ## 目录
 
@@ -37,8 +37,9 @@
 | **演示关卡** | ❌（可选：预置模型脚本） | 完整 5 件珍宝的集市；跑过脚本就加载真实 GLB，否则占位模型 | 0 |
 | **正式关卡** | DeepSeek + Lux3D | LLM 现场生成世界 + 5 件实时 GLB | ≈65 积分/关 |
 
-- **开始页**：继续上一局（刷新后续玩）/ 开始游戏 / 教学关卡 / 演示关卡（无 Key 时）/ 设置；Key 状态与教学进度一眼可见。
-- **刷新续玩**：正式关与演示关的运行时（额度、报价、成交、精灵日志、阶段）实时落 localStorage，刷新后开始页出现「继续上一局」，回到原处继续。
+- **开始画面**：全屏 canvas 黑洞把初始珍宝从四面八方缓缓吸进去（无限循环，进洞即销毁并回收对象）；主菜单为 **新游戏 / 继续游戏 / 设置 / 游戏说明**，只有存在续玩快照时「继续游戏」才可用，Key 状态与教学进度收在底部一行。
+- **新游戏 / 游戏说明**：三种开局（教学 / 正式 / 演示）收进「新游戏」页；玩法循环、真伪判定、精灵边界与额度集中到「游戏说明」页。
+- **刷新续玩**：正式关与演示关的运行时（额度、报价、成交、精灵日志、阶段）实时落 localStorage，刷新后开始画面「继续游戏」可用，回到原处继续。
 - **3D 布展可控**：Lux3D 任务失败自动重试 1 次（task-failed / timeout），可随时「停止布展」取消轮询与下载；three.js 已拆成独立 chunk，按需加载。
 - **预置模型**：教学 / 演示关的 3D 不再只能看占位——运行 `scripts/init_models.py` 生成 7 件 GLB，网页按 `manifest.json` 自动加载；没有生成时安静回退占位模型。
 
@@ -97,11 +98,12 @@
 |---|---|---|
 | 构建 | **Vite 8**（`base: './'`） | 秒级 HMR；纯静态产物，可丢任意静态托管；无后端 |
 | 语言 | **TypeScript 5.9（strict + noUncheckedIndexedAccess + noUnused）** | 关卡 JSON 协议、价格 clamp、diff/结算最容易出静默错误 |
-| UI | **无框架 + 原生 DOM**（`ui/dom.ts` helper） | 方案明确"不上框架"；5 屏规模不需要 React |
-| 3D | **Three.js 0.187**（OrbitControls + GLTFLoader），**动态 import 成独立 chunk** | 首屏不背 3D 引擎：主包 ~62KB gzip，3D chunk 按需加载 |
+| UI | **无框架 + 原生 DOM**（`ui/dom.ts` helper） | 方案明确"不上框架"；8 屏规模不需要 React |
+| 开始画面 | **原生 2D Canvas**（无额外依赖） | 黑洞与珍宝循环；精灵、星空、黑洞都离屏预渲染，珍宝对象池复用，离开画面立即取消 rAF 并清空 |
+| 3D | **Three.js 0.187**（OrbitControls + GLTFLoader），**动态 import 成独立 chunk** | 首屏不背 3D 引擎：主包 ~70KB gzip，3D chunk 按需加载 |
 | 校验 | **Zod 4** | schema 失败信息直接回灌 LLM 做定向重试 |
 | 存储 | **localStorage + IndexedDB** | Key / 存档 / 续玩快照走 localStorage；关卡 JSON 与 GLB blob 走 IndexedDB |
-| 测试 | **Vitest 5 + happy-dom** | 15 个测试文件 / 81 个用例 |
+| 测试 | **Vitest 5 + happy-dom** | 17 个测试文件 / 86 个用例 |
 | 工程化 | **ESLint 10（flat config）+ Prettier 3** | `npm run verify` 串起 typecheck → lint → test → build |
 | 样式 | **原生 CSS + 设计 token** | 按 token / base / 组件 / 屏幕分层，无 Tailwind 构建链 |
 
@@ -122,9 +124,9 @@ Gemwright/
 ├── src/
 │   ├── main.ts                   读设置 / 续玩快照 → 挂载应用；DEV 暴露 window.gemwright
 │   ├── app/
-│   │   ├── store.ts              5+1 屏状态（含开始页）、续玩 / 教学字段
-│   │   ├── router.ts             状态路由；开始页不套顶栏；离开验货释放 WebGL
-│   │   └── actions.ts            所有动作：开始页 / 教学 / 生成 / 议价 / 问精灵 / 结算 / 存档 / 取消布展
+│   │   ├── store.ts              8 屏状态（开始 / 新游戏 / 说明 / 设置 / 穿越 / 集市 / 验货 / 基地）
+│   │   ├── router.ts             状态路由；开始画面不套顶栏；离开开始画面释放 canvas、离开验货释放 WebGL
+│   │   └── actions.ts            所有动作：开始 / 教学 / 生成 / 议价 / 问精灵 / 结算 / 存档 / 取消布展
 │   ├── api/
 │   │   ├── deepseek.ts           chat / jsonChat / 余额预检 / 超时
 │   │   ├── lux3d.ts              create → poll → download；国内 / 国际端点
@@ -143,23 +145,25 @@ Gemwright/
 │   │   ├── random.ts             mulberry32 / 洗牌
 │   │   ├── fixtures/demoLevel.ts 演示关卡（5 件，0 积分）
 │   │   └── tutorial/level.ts     教学关卡：预置故事 + 一真一假 + 5 条剧本问答 + 六步目标
-│   ├── render/viewer.ts          Three.js 检视：GLB / 占位模型 / 开箱雾（异步 chunk）
+│   ├── render/
+│   │   ├── viewer.ts             Three.js 检视：GLB / 占位模型 / 开箱雾（异步 chunk）
+│   │   └── startBackdrop.ts      开始画面黑洞：2D canvas、对象池、离屏预渲染、dispose
 │   ├── store/
 │   │   ├── cache.ts              IndexedDB + 玩家存档 + 续玩快照 + 教学通关标记
 │   │   ├── localModels.ts        预置 manifest / GLB 加载（未生成则回退 null）
 │   │   └── settings.ts           Key / 地区 / 快速议价
-│   ├── styles/                   tokens / base / components / screens / landing
+│   ├── styles/                   tokens / base / components / screens / start
 │   ├── types/level.ts            协议 + 运行时 + 快照 + 结算 + 错误
 │   ├── ui/
 │   │   ├── dom.ts                h() / button() / toast() / typewrite()
 │   │   ├── components.ts         顶栏 / 面板 / 徽章 / 特征表 / 布展进度
 │   │   ├── tutorial.ts           教学六步引导（复用组件）
-│   │   └── screens/              start / settings / travel / market / inspect / base
-├── tests/                        15 个测试文件 / 81 个用例
+│   │   └── screens/              start / newgame / guide / settings / travel / market / inspect / base
+├── tests/                        17 个测试文件 / 86 个用例
 └── docs/
     ├── 珍宝猎人-方案v8-MVP.md     权威方案 v8.1
     ├── 开发指南.md                模块职责、数据流、不变量、扩展方式
-    └── screenshots/              UI 实拍（开始页 / 教学 / 演示）
+    └── screenshots/              UI 实拍（开始画面 / 教学 / 演示）
 ```
 
 ### 一次"穿越"的数据流
@@ -197,7 +201,7 @@ public/models/manifest.json → loadLocalModel() → GLB Blob → TreasureViewer
 npm install
 npm run dev         # http://127.0.0.1:5173
 npm run build       # 产物 dist/，相对路径，可直接静态托管
-npm run test        # Vitest：81 个用例
+npm run test        # Vitest：86 个用例
 npm run lint        # ESLint（flat config）
 npm run format      # Prettier 写回 src/tests/配置
 npm run verify      # typecheck + lint + test + build（提交前一键）
@@ -231,12 +235,12 @@ npm run models
 
 生成后刷新网页，进入教学 / 演示关卡的「验货」页即可看到真实模型（底部会标注「本地预置模型」）。没生成时自动使用占位模型，玩法完全不受影响。
 
-**第一次打开** → 开始页：
+**第一次打开** → 开始画面：
 
-1. **零成本**：先按上面的「预置 3D 模型」生成（可选），再点「教学关卡」，跟着六步目标走完（约 3 分钟，0 积分），最后用「演示关卡」熟悉 5 件集市。
+1. **零成本**：先按上面的「预置 3D 模型」生成（可选），再点「新游戏 → 教学关卡」，跟着六步目标走完（约 3 分钟，0 积分），最后用「演示关卡」熟悉 5 件集市。
 2. **正式开局**：设置页填 `DeepSeek API Key` 与 `Lux3D API Key`（国内 / 国际 Key 不通用，注意地区下拉）；点「测试 DeepSeek Key」预检余额；保存。
-3. 开始页点「开始游戏」→ 选世界 → 穿越（首关约 2~3 分钟：世界观先到先展，5 件 GLB 并行布展）→ 开市。
-4. 中途刷新：开始页会变成「继续上一局」，回到原处（教学关除外，教学关刷新从头再来）。
+3. 开始画面点「新游戏 → 正式开局」→ 选世界 → 穿越（首关约 2~3 分钟：世界观先到先展，5 件 GLB 并行布展）→ 开市。
+4. 中途刷新：开始画面「继续游戏」会变为可用，回到原处（教学关除外，教学关刷新从头再来）。
 
 部署：`npm run build` 后把 `dist/` 丢到任意静态托管即可；Key 只在玩家浏览器里，不经任何服务器。
 
@@ -244,7 +248,8 @@ npm run models
 
 | 方案模块 | 代码 | 状态 |
 |---|---|---|
-| 开始页 / 教学关卡 | `ui/screens/start.ts`、`game/tutorial/level.ts` | ✅ 六步引导、剧本问答、0 调用、存档隔离 |
+| 开始画面 / 新游戏 / 游戏说明 | `ui/screens/{start,newgame,guide}.ts`、`render/startBackdrop.ts` | ✅ canvas 黑洞 + 四菜单 + 三种开局 + 玩法说明；对象池 / dispose 无泄漏 |
+| 教学关卡 | `ui/screens/*`、`game/tutorial/level.ts` | ✅ 六步引导、剧本问答、0 调用、存档隔离 |
 | 预置 3D 模型（P0） | `scripts/init_models.py`、`store/localModels.ts` | ✅ 脚本生成 + manifest + 自动加载 + 占位回退；模型不入库；**真实 Lux3D 生成待你用 Key 执行** |
 | 双 API 直连（CORS / 鉴权 / 轮询） | `src/api/*` | ✅ 适配层完成；**真实 Key 端到端待联调** |
 | 关卡协议 + 归一化 | `src/game/validate.ts` | ✅ Zod、真伪覆写、特征推导、价格重平衡、难度整形 |
@@ -253,10 +258,10 @@ npm run models
 | 混合砍价 | `src/game/bargain.ts` | ✅ 底价必拒、额度/回合、一致性兜底、断网降级 |
 | 经济与结算 | `src/game/economy.ts` | ✅ 双额度、回收费、软重开、结束条件 |
 | 3D 检视 / 演出 | `src/render/viewer.ts`、screens | ✅ GLB + 占位模型 + 开箱雾 + 逐件揭晓 + 穿越动画 |
-| 刷新续玩 | `store/cache.ts`、`actions.ts` | ✅ 运行时快照 + 开始页「继续」；教学关不落快照 |
+| 刷新续玩 | `store/cache.ts`、`actions.ts` | ✅ 运行时快照 + 开始画面「继续游戏」；教学关不落快照 |
 | IndexedDB / 存档 | `src/store/cache.ts` | ✅ 关卡 + GLB + 存档；不可用降级内存 |
-| 5+1 屏 UI | `src/ui/screens/*` | ✅ 全部可走通 |
-| 工程化 | ESLint / Prettier / 动态 chunk | ✅ `verify` 一键；主包 ~62KB gzip，3D 懒加载 |
+| 8 屏 UI | `src/ui/screens/*` | ✅ 全部可走通 |
+| 工程化 | ESLint / Prettier / 动态 chunk | ✅ `verify` 一键；主包 ~70KB gzip，3D 懒加载 |
 | 音效 / BGM | — | ⛔ 未做（可选打磨） |
 | 真实 Key 的 5×G1-Turbo 实跑 | — | ⛔ 待 D1 验收（需真实 Key） |
 | 移动端 / 多语言 | — | ⛔ 方案明确不做 |
@@ -302,14 +307,14 @@ npm run models
 npm run verify
 # tsc --noEmit ✓（strict + noUnusedLocals）
 # eslint ✓（flat config）
-# vitest: 15 files / 81 tests ✓
+# vitest: 17 files / 86 tests ✓
 # vite build: dist/ ✓
-#   主包 index-*.js  ~186KB / gzip ~62KB
+#   主包 index-*.js  ~207KB / gzip ~70KB
 #   3D chunk viewer-*.js ~651KB / gzip ~163KB（按需加载）
 ```
 
-- 单测覆盖：价格 clamp、真伪覆写、难度整形、特征 diff、额度与回合、一致性兜底、结算数学、精灵防火墙/编号过滤、DeepSeek/Lux3D 请求契约、关卡重试、模型重试 / 取消、5 件并发、续玩快照、教学六步推导、教学存档隔离、预置模型加载/缓存/回退、UI 渲染、启动冒烟。
-- **端到端**（本机 Chrome + Playwright 驱动）：开始页 → 教学关卡 → 问精灵（正常 + 防火墙挡回）→ 两件验货（WebGL canvas 正常，7 颗 / 6 颗可数）→ 砍价 320/300 → 自动收摊 → 基地 diff → 结算 → 教学完成 → 回开始页（显示"教学已通关"）→ 演示关卡开市 → **刷新 → 开始页「继续上一局」→ 回到集市**。控制台 0 error，教学与演示全程 **0 外部请求**。
+- 单测覆盖：价格 clamp、真伪覆写、难度整形、特征 diff、额度与回合、一致性兜底、结算数学、精灵防火墙/编号过滤、DeepSeek/Lux3D 请求契约、关卡重试、模型重试 / 取消、5 件并发、续玩快照、教学六步推导、教学存档隔离、预置模型加载/缓存/回退、开始画面背景生命周期、菜单页渲染、UI 渲染、启动冒烟。
+- **端到端**（本机 Chrome + Playwright 驱动）：开始画面（黑洞 canvas 正常，桌面 / 390px 手机视口无横向溢出）→ 游戏说明 → 新游戏 → 教学关卡 → 问精灵（正常 + 防火墙挡回）→ 两件验货（WebGL canvas 正常，7 颗 / 6 颗可数）→ 砍价 320/300 → 自动收摊 → 基地 diff → 结算 → 教学完成 → 回开始画面（显示"教学已通关"）→ 演示关卡开市 → **刷新 → 开始画面「继续游戏」→ 回到集市**。控制台 0 error，教学与演示全程 **0 外部请求**；开始画面 ↔ 说明页往返 40 次后 JS 堆稳定、DOM 仅 1 块 canvas。
 - **未验证**：真实 DeepSeek / Lux3D Key 的在线调用（本轮无 Key）。预置模型链路已用一份合成 GLB 在浏览器验证「manifest → GLB → Three.js」可加载；真实模型需你执行 `npm run models` 生成。
 
 ## 下一步
