@@ -6,7 +6,7 @@ import { defineConfig } from 'vite';
  */
 export default defineConfig({
   base: './',
-  // three 是动态 import 的（viewer chunk）。预打包它，避免首次进验货页时
+  // three 由验货 viewer 与开始页缩略图 Worker 按需加载。预打包它，避免首次使用时
   // Vite 才发现新依赖 -> 重新优化 -> 整页刷新，把正在飞的动态 import 打断
   // （表现为 "Failed to fetch dynamically imported module: .../viewer.ts"）。
   optimizeDeps: {
@@ -14,6 +14,7 @@ export default defineConfig({
       'three',
       'three/examples/jsm/controls/OrbitControls.js',
       'three/examples/jsm/loaders/GLTFLoader.js',
+      'three/examples/jsm/environments/RoomEnvironment.js',
     ],
   },
   build: {

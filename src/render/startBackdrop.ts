@@ -10,9 +10,13 @@
  * - 离开开始画面时 dispose：取消 rAF、移除监听、清空数组与离屏 canvas。
  */
 
+import { loadModelSprites } from './modelSprites';
+
 const TAU = Math.PI * 2;
 const MAX_DPR = 2;
 const POOL_LIMIT = 36;
+/** 等首帧稳定后再去解析 10MB 级的预置 GLB，避免和开始页入场动画抢主线程。 */
+const MODEL_SPRITE_DELAY_MS = 500;
 
 type Shape = 'octa' | 'diamond' | 'hex' | 'shard' | 'coin' | 'obelisk' | 'ring';
 
@@ -23,7 +27,7 @@ interface SpriteDef {
   glow: string;
 }
 
-/** 8 种"初始珍宝"的剪影/配色，和游戏里的色族/形制呼应。 */
+/** 7 种兜底珍宝剪影，与预置模型的 7 个槽位一一对应；模型缺失时顶上。 */
 const SPRITE_DEFS: SpriteDef[] = [
   { shape: 'octa', color: '#7dd3fc', light: '#e0f2fe', glow: 'rgba(125, 211, 252, 0.55)' },
   { shape: 'diamond', color: '#f6b73c', light: '#fff4d6', glow: 'rgba(246, 183, 60, 0.55)' },
@@ -32,7 +36,6 @@ const SPRITE_DEFS: SpriteDef[] = [
   { shape: 'coin', color: '#f472b6', light: '#ffe4ef', glow: 'rgba(244, 114, 182, 0.45)' },
   { shape: 'obelisk', color: '#34d399', light: '#d1fae5', glow: 'rgba(52, 211, 153, 0.45)' },
   { shape: 'ring', color: '#fcd34d', light: '#fffbeb', glow: 'rgba(252, 211, 77, 0.5)' },
-  { shape: 'octa', color: '#e2e8f0', light: '#ffffff', glow: 'rgba(226, 232, 240, 0.45)' },
 ];
 
 interface Star {
@@ -99,6 +102,12 @@ interface Backdrop {
   pool: FlyingItem[];
   flashes: Flash[];
   sprites: HTMLCanvasElement[];
+  /** 真实预置 GLB 的缩略图；按槽位替换对应的程序化图形，null 表示还没加载/加载失败。 */
+  modelSprites: Array<HTMLCanvasElement | null>;
+  /** 每个槽位从程序化图形切到真实模型的淡入进度 0~1。 */
+  modelFade: number[];
+  modelAbort: AbortController | null;
+  modelTimer: number;
   time: number;
   lastTime: number;
   spawnCooldown: number;
@@ -147,6 +156,10 @@ export function mountStartBackdrop(host: HTMLElement): void {
     pool: [],
     flashes: [],
     sprites: SPRITE_DEFS.map((def) => renderSprite(def)),
+    modelSprites: Array<HTMLCanvasElement | null>(SPRITE_DEFS.length).fill(null),
+    modelFade: Array<number>(SPRITE_DEFS.length).fill(0),
+    modelAbort: new AbortController(),
+    modelTimer: 0,
     time: 0,
     lastTime: 0,
     spawnCooldown: 0.4,
@@ -198,6 +211,21 @@ export function mountStartBackdrop(host: HTMLElement): void {
     backdrop.lastTime = performance.now();
     backdrop.raf = requestAnimationFrame(tick);
   }
+
+  // 预置 GLB 缩略图：manifest 有模型才启动 Worker；没有 / 加载失败就继续用程序化图形。
+  backdrop.modelTimer = window.setTimeout(() => {
+    backdrop.modelTimer = 0;
+    if (active !== backdrop || !backdrop.modelAbort) return;
+    void loadModelSprites({
+      signal: backdrop.modelAbort.signal,
+      onSprite: (sprite, slot) => {
+        if (active !== backdrop || slot < 0 || slot >= backdrop.modelSprites.length) return;
+        backdrop.modelSprites[slot] = sprite.canvas;
+        backdrop.modelFade[slot] = backdrop.reducedMotion ? 1 : 0;
+        if (backdrop.reducedMotion) draw(backdrop);
+      },
+    }).catch(() => undefined);
+  }, MODEL_SPRITE_DELAY_MS);
 }
 
 export function disposeStartBackdrop(): void {
@@ -212,6 +240,12 @@ export function disposeStartBackdrop(): void {
 
   if (backdrop.raf) cancelAnimationFrame(backdrop.raf);
   backdrop.raf = 0;
+  if (backdrop.modelTimer) {
+    clearTimeout(backdrop.modelTimer);
+    backdrop.modelTimer = 0;
+  }
+  backdrop.modelAbort?.abort();
+  backdrop.modelAbort = null;
   window.removeEventListener('resize', backdrop.onResize);
   document.removeEventListener('visibilitychange', backdrop.onVisibility);
 
@@ -222,6 +256,8 @@ export function disposeStartBackdrop(): void {
   backdrop.stars.length = 0;
   backdrop.dust.length = 0;
   backdrop.sprites.length = 0;
+  backdrop.modelSprites.length = 0;
+  backdrop.modelFade.length = 0;
   backdrop.sky = null;
   backdrop.hole = null;
   backdrop.canvas.remove();
@@ -722,6 +758,13 @@ function update(backdrop: Backdrop, dt: number): void {
     mote.angle += mote.speed * dt;
   }
 
+  // 真实模型缩略图到达后，用 0.7s 从程序化图形淡入，避免半空中的珍宝"突变"。
+  for (let i = 0; i < backdrop.modelFade.length; i += 1) {
+    const fade = backdrop.modelFade[i];
+    if (fade === undefined || fade >= 1) continue;
+    if (backdrop.modelSprites[i]) backdrop.modelFade[i] = Math.min(1, fade + dt / 0.7);
+  }
+
   // 持续补充：少的时候补得快，稳态时保持一条缓慢的"流星雨"。
   if (backdrop.items.length < backdrop.target) {
     backdrop.spawnCooldown -= dt;
@@ -795,16 +838,33 @@ function drawDust(backdrop: Backdrop): void {
 }
 
 function drawItem(backdrop: Backdrop, item: FlyingItem): void {
-  const sprite = backdrop.sprites[item.sprite % backdrop.sprites.length];
-  if (!sprite) return;
-  const drawSize = item.size * 2.2;
+  const fade = backdrop.modelFade[item.sprite] ?? 0;
+  const model = backdrop.modelSprites[item.sprite];
+
+  // 有真实模型就淡入；没有 / 还没加载完则继续画兜底图形。
+  if (model && fade > 0) drawSprite(backdrop, item, model, item.alpha * fade, 1.2);
+  if (!model || fade < 1) {
+    const procedural = backdrop.sprites[item.sprite % backdrop.sprites.length];
+    if (procedural) drawSprite(backdrop, item, procedural, item.alpha * (1 - fade), 1);
+  }
+}
+
+function drawSprite(
+  backdrop: Backdrop,
+  item: FlyingItem,
+  sprite: HTMLCanvasElement,
+  alpha: number,
+  scale: number,
+): void {
+  if (alpha <= 0) return;
+  const drawSize = item.size * 2.2 * scale;
   const width = drawSize * item.stretch * item.radialScale;
   const height = (drawSize / (1 + (item.stretch - 1) * 0.55)) * item.radialScale;
   if (width <= 0 || height <= 0) return;
 
   const { ctx } = backdrop;
   ctx.save();
-  ctx.globalAlpha = item.alpha;
+  ctx.globalAlpha = alpha;
   ctx.translate(item.x, item.y);
   ctx.rotate(item.drawAngle);
   ctx.drawImage(sprite, -width / 2, -height / 2, width, height);
