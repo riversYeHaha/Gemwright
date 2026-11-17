@@ -7,7 +7,7 @@
 > **你以为你在砍价，其实你在鉴定。**
 
 - 当前阶段：**开始画面 + 教学关卡 + 陪伴精灵 + 完整闭环**。零 Key 也能玩（教学 / 演示关卡）；填入 Key 后先跑初始化脚本生成预置 3D 模型。
-- **模型不入库**：仓库只带生成脚本；预置模型由玩家用自己的 Lux3D Key 生成，陪伴精灵由本地骨架脚本生成，全部放在 `public/models/`（已在 `.gitignore`）。
+- **模型不入库**：仓库只带生成脚本；珍宝与陪伴精灵都用玩家自己的 Lux3D Key 生成，全部放在 `public/models/`（已在 `.gitignore`）。没有 Key 时教学 / 演示与程序化兜底仍可玩。
 - 权威方案：[docs/珍宝猎人-方案v8-MVP.md](docs/珍宝猎人-方案v8-MVP.md)（v8.1）
 - 开发指南：[docs/开发指南.md](docs/开发指南.md)
 
@@ -45,7 +45,7 @@
 - **刷新续玩**：正式关与演示关的运行时（额度、报价、成交、精灵日志、阶段）实时落 localStorage，刷新后开始画面「继续游戏」可用，回到原处继续。
 - **3D 布展可控**：Lux3D 任务失败自动重试 1 次（task-failed / timeout），可随时「停止布展」取消轮询与下载；three.js 已拆成独立 chunk，按需加载。
 - **预置模型**：教学 / 演示关的 3D 不再只能看占位——运行 `scripts/init_models.py` 生成 7 件 GLB，网页按 `manifest.json` 自动加载；开始画面的漂浮珍宝也优先用它们。没有生成时安静回退占位模型 / 程序化图形。
-- **陪伴精灵**：右下角常驻 3D 小伙伴，六套骨骼动画随“思考 / 回答 / 成交 / 被挡回 / 额度耗尽”等状态切换，偶尔自言自语；模型与动画由本地脚本生成，零积分。
+- **陪伴精灵**：右下角常驻 3D 小伙伴，六套骨骼动画随“思考 / 回答 / 成交 / 被挡回 / 额度耗尽”等状态切换，偶尔自言自语；形象与绑骨动画由 **Lux3D API** 生成（文生 3D → 自动绑骨 → 动作重定向），失败 / 未配置 Key 时用程序化骨架兜底。
 
 ## 教学关卡（MVP 保底）
 
@@ -70,36 +70,50 @@
 
 ![陪伴精灵](docs/screenshots/fairy-companion.jpg)
 
+> 截图是**未配置 Lux3D Key** 时的程序化兜底形象；运行 `npm run fairy` 后，精灵会换成 Lux3D 文生 3D + 绑骨 + 动作重定向的 GLB。
+
 - **常驻右下角**：只在穿越 / 集市 / 验货 / 基地出现；在集市点它会唤出精灵面板（面板打开时它让位给侧栏），其它屏幕点它只说句话。
 - **六套动作**：`Idle` / `Talk` / `Think` / `Happy` / `Sad` / `Alert`，由运行时状态自动匹配，交叉淡入。
 - **偶尔自言自语**：12–24 秒一句，台词来自本地静态池（会结合世界、额度、教学关、资金语境），**不调用 LLM**，也绝不包含单件真伪 / 价格。
-- **零积分、可离线**：模型与动画由 `npm run fairy` 本地生成，不经过 Lux3D（Lux3D 只出静态网格，做不了骨骼动画）。
+- **Lux3D 生成**：`npm run fairy` 调三次 Lux3D 官方异步接口：文生 3D → 数字人自动绑骨 → 6 个动作重定向（combined），最终下载一个带 skin 与 6 个 AnimationClip 的 GLB。
+- **兜底**：没有 Key / 生成失败 / 旧浏览器不支持 `OffscreenCanvas` 时，运行时仍用同一套程序化骨架 / CSS 光球，游戏不会少一个精灵。
 
 ### 动作 → 动画
 
-| 动作 | 触发 | 动画 |
+| 动作 | 触发 | Lux3D 动画 ID（重定向后 clip 同名） |
 |---|---|---|
-| 待机 | 无事件 | `Idle`（浮空 + 扇翅 + 光环旋转） |
-| 思考 | 生成关卡 / 布局布展 / 精灵答题中 | `Think`（歪头 + 慢扇翅） |
-| 说话 | 进入新世界 / 精灵回答 / 自言自语 | `Talk`（点头 + 手势） |
-| 开心 | 成交 / 成功提示 | `Happy`（跳起 + 转圈，播放一次） |
-| 难过 | 被防火墙挡回 / 错误提示 | `Sad`（低头 + 收翅） |
-| 警戒 | 询问额度耗尽 / 收摊回基地 | `Alert`（快速扇翅 + 抬头） |
+| 待机 | 无事件 | `Idle_Loop` |
+| 思考 | 生成关卡 / 布展 / 精灵答题中 | `Idle_FoldArms_Loop` |
+| 说话 | 进入新世界 / 精灵回答 / 自言自语 | `Idle_Talking_Loop` |
+| 开心 | 成交 / 成功提示 | `Dance_Loop`（播一次回待机） |
+| 难过 | 被防火墙挡回 / 错误提示 | `Crouch_Idle_Loop` |
+| 警戒 | 询问额度耗尽 / 收摊回基地 | `Yes`（播一次回待机） |
 
-### 生成模型与动画（零积分，可选）
+脚本会把 Lux3D 实际返回的 clip 名写进 `manifest.actions`；即使接口改了 clip 命名，也按 manifest 映射，不写死在前端。
+
+### 用 Lux3D 生成形象与绑骨动画（约 41 积分）
 
 ```bash
-npm run fairy:dry   # 只打印骨骼 / 动画 / 输出路径
+npm run fairy:dry   # 只打印 prompt / 动作 / 预计积分 / 输出路径，不调用 API
+export LUX3D_API_KEY=你的密钥   # 或写 .env.local；也可 --key
 npm run fairy       # 生成 public/models/fairy/fairy.glb + manifest.json
-npm run fairy             # 每次都会重新导出（零成本）
+npm run fairy -- --force          # 已存在也重新生成（会再次消耗积分）
+npm run fairy -- --region global  # 国际 Key
 ```
 
-- 12 根骨骼：`Root / Body / Head / Halo / ArmL / ArmR / WingUpperL / WingLowerL / WingUpperR / WingLowerR / Tail / Sparkles`。
-- 6 个 `AnimationClip` 直接写进 GLB，浏览器用 `AnimationMixer` 播放。
+脚本调用链（Lux3D 官方异步任务）：
+
+1. `POST /lux3d/v1/generate/text-to-3d/task/create`：G1 文生 3D，生成 **humanoid、A-pose、全身** 的精灵形象（20 积分）。
+2. `POST /lux3d/v1/animations/rig/task/create`：数字人自动绑骨（15 积分）。
+3. `POST /lux3d/v1/animations/retarget/task/create`：`animationOutputMode=combined`，6 个动作合并进一个 GLB（6 积分/次，1~10 个动作同价）。
+4. 下载并校验 `skins` / `AnimationClip`，把实际 clip 名写进 manifest。
+
+- 默认国内根地址 `https://api.aholo.cn`；若你的 Key 绑定旧网关，可加 `--base-url https://api.aholo3d.cn`。
+- 生成失败时保留旧 `fairy.glb` / manifest，网页继续用上一个产物或程序化兜底。
 - **没有跑脚本也能用**：运行时用同一份 `src/render/fairyRig.mjs` 实时构建骨架兜底，游戏不会因为缺模型而少一个精灵。
 - 不支持 `OffscreenCanvas` 的浏览器保留 CSS 光球 + 台词气泡，不会报错。
 
-> 当前骨架是**刚体骨绑**（骨骼带动身体 / 翅膀 / 手臂等部件，不做蒙皮形变），足够支撑六套演出；如果以后要更细腻的形变，可以在这个骨架上加 SkinnedMesh。
+> Lux3D 生成的是**带 skin 的 humanoid 骨骼动画**；程序化兜底才是刚体骨绑。若模型朝向/比例不合适，优先改脚本里的 prompt 后 `--force` 重跑。
 
 ## 玩法闭环
 
@@ -140,7 +154,7 @@ npm run fairy             # 每次都会重新导出（零成本）
 | UI | **无框架 + 原生 DOM**（`ui/dom.ts` helper） | 方案明确"不上框架"；8 屏规模不需要 React |
 | 开始画面 | **2D Canvas + Worker 缩略图** | 黑洞/星空/兜底精灵离屏预渲染、对象池复用；有预置 GLB 时把 three 与 GLTFLoader 放进 Worker 拍缩略图，主线程不卡；无模型时零 3D 开销 |
 | 3D | **Three.js 0.187**（OrbitControls + GLTFLoader），**动态 import / Worker 独立 chunk** | 主包 ~75KB gzip；验货 viewer、开始页缩略图 Worker、精灵 Worker 都按需加载，首屏不背 3D 引擎 |
-| 精灵动画 | **AnimationMixer + OffscreenCanvas Worker** | 12 根刚体骨骼 / 6 套 clip；渲染在 Worker，首次进游戏不卡主线程 |
+| 精灵动画 | **Lux3D 文生 3D + 自动绑骨 + 动作重定向 + AnimationMixer / OffscreenCanvas Worker** | 主路径是带 skin 的 humanoid + 6 个 AnimationClip；兜底为 12 骨程序化骨架；渲染在 Worker，不卡主线程 |
 | 校验 | **Zod 4** | schema 失败信息直接回灌 LLM 做定向重试 |
 | 存储 | **localStorage + IndexedDB** | Key / 存档 / 续玩快照走 localStorage；关卡 JSON 与 GLB blob 走 IndexedDB |
 | 测试 | **Vitest 5 + happy-dom** | 22 个测试文件 / 100 个用例 |
@@ -161,7 +175,7 @@ Gemwright/
 ├── public/models/               ★ 预置 GLB + manifest（脚本生成，.gitignore 忽略）
 ├── scripts/
 │   ├── init_models.py           预置珍宝生成脚本（stdlib，无第三方依赖，内置 prompt）
-│   └── init_fairy.mjs           陪伴精灵：骨架 + 6 套动画 → GLB（零积分）
+│   └── init_fairy.py            陪伴精灵：Lux3D 文生 3D → 绑骨 → 6 动作（约 41 积分）
 ├── src/
 │   ├── main.ts                   读设置 / 续玩快照 → 挂载应用；DEV 暴露 window.gemwright
 │   ├── app/
@@ -257,8 +271,8 @@ npm run format      # Prettier 写回 src/tests/配置
 npm run verify      # typecheck + lint + test + build（提交前一键）
 npm run models      # 生成教学/演示的预置 3D 模型（需 Lux3D Key）
 npm run models:dry  # 只预览 prompt / 输出路径，不调用 API
-npm run fairy       # 生成右下角陪伴精灵 GLB + 6 套骨骼动画（零积分）
-npm run fairy:dry   # 只预览精灵骨骼 / 动画 / 输出路径
+npm run fairy       # Lux3D 生成陪伴精灵：形象 + 绑骨 + 6 动作（约 41 积分）
+npm run fairy:dry   # 只预览 prompt / 动作 / 预计积分
 ```
 
 ### 预置 3D 模型（P0 第一步，建议正式开玩前执行）
@@ -287,14 +301,15 @@ npm run models
 
 生成后刷新网页，进入教学 / 演示关卡的「验货」页即可看到真实模型（底部会标注「本地预置模型」）。没生成时自动使用占位模型，玩法完全不受影响。
 
-### 陪伴精灵（零积分，建议执行）
+### 陪伴精灵（Lux3D，约 41 积分）
 
 ```bash
-npm run fairy:dry   # 预览 12 根骨骼 / 6 套动画
-npm run fairy       # 写入 public/models/fairy/fairy.glb + manifest.json
+npm run fairy:dry   # 预览 prompt / 6 个动作 / 预计积分
+export LUX3D_API_KEY=你的密钥
+npm run fairy       # 文生 3D → 绑骨 → 动作重定向 → public/models/fairy/
 ```
 
-不执行也能玩：运行时用同一套骨架实时兜底；执行后改为加载 GLB，动画与动作匹配完全一致。
+不执行也能玩：运行时用同一套程序化骨架实时兜底；执行后改为加载 Lux3D 生成的带 skin 的 GLB。
 
 **第一次打开** → 开始画面：
 
@@ -311,7 +326,7 @@ npm run fairy       # 写入 public/models/fairy/fairy.glb + manifest.json
 |---|---|---|
 | 开始画面 / 新游戏 / 游戏说明 | `ui/screens/{start,newgame,guide}.ts`、`render/{startBackdrop,modelSprites}.ts` | ✅ canvas 黑洞 + 四菜单 + 三种开局 + 玩法说明；预置 GLB 缩略图优先、失败逐件回退；对象池 / dispose 无泄漏 |
 | 教学关卡 | `ui/screens/*`、`game/tutorial/level.ts` | ✅ 六步引导、剧本问答、0 调用、存档隔离 |
-| 陪伴精灵 | `render/fairyRig.mjs`、`fairyStage.worker.ts`、`ui/fairyCompanion.ts` | ✅ 12 骨 / 6 动画 / 状态匹配 / 右下角常驻 / 自言语；零积分；Worker 渲染 |
+| 陪伴精灵 | `scripts/init_fairy.py`、`render/fairyRig.mjs`、`ui/fairyCompanion.ts` | ✅ Lux3D 文生 3D + 绑骨 + 6 动作重定向；状态匹配 / 右下角常驻 / 自言语；失败有程序化兜底 |
 | 预置 3D 模型（P0） | `scripts/init_models.py`、`store/localModels.ts` | ✅ 脚本生成 + manifest + 自动加载 + 占位回退；模型不入库；**真实 Lux3D 生成待你用 Key 执行** |
 | 双 API 直连（CORS / 鉴权 / 轮询） | `src/api/*` | ✅ 适配层完成；**真实 Key 端到端待联调** |
 | 关卡协议 + 归一化 | `src/game/validate.ts` | ✅ Zod、真伪覆写、特征推导、价格重平衡、难度整形 |
@@ -326,6 +341,7 @@ npm run fairy       # 写入 public/models/fairy/fairy.glb + manifest.json
 | 工程化 | ESLint / Prettier / 动态 chunk | ✅ `verify` 一键；主包 ~75KB gzip，3D / Worker 懒加载 |
 | 音效 / BGM | — | ⛔ 未做（可选打磨） |
 | 真实 Key 的 5×G1-Turbo 实跑 | — | ⛔ 待 D1 验收（需真实 Key） |
+| Lux3D 精灵（文生 3D / 绑骨 / 动作重定向） | `scripts/init_fairy.py` | ✅ 脚本 + mock 全链路；**真实 API 待你的 Key 执行（约 41 积分）** |
 | 移动端 / 多语言 | — | ⛔ 方案明确不做 |
 
 ![演示关卡集市（刷新后继续）](docs/screenshots/market.jpg)
@@ -378,8 +394,8 @@ npm run verify
 ```
 
 - 单测覆盖：价格 clamp、真伪覆写、难度整形、特征 diff、额度与回合、一致性兜底、结算数学、精灵防火墙/编号过滤、DeepSeek/Lux3D 请求契约、关卡重试、模型重试 / 取消、5 件并发、续玩快照、教学六步推导、教学存档隔离、预置模型加载/缓存/回退、开始画面背景生命周期、预置珍宝缩略图排序/回退、精灵骨架 / 动作匹配 / 静态台词 / 模型加载 / 常驻显隐、菜单页渲染、UI 渲染、启动冒烟。
-- **端到端**（本机 Chrome + Playwright 驱动）：开始画面（黑洞 canvas 正常，桌面 / 390px 手机视口无横向溢出；7 件预置 GLB 在 Worker 中渐进替换兜底图形，离开开始页立即停止后续请求，主线程最长任务 ~200ms）→ 游戏说明 → 新游戏 → 教学关卡 → 问精灵（正常 + 防火墙挡回）→ 两件验货（WebGL canvas 正常，7 颗 / 6 颗可数）→ 砍价 320/300 → 自动收摊 → 基地 diff → 结算 → 教学完成 → 回开始画面（显示"教学已通关"）→ 演示关卡开市 → **刷新 → 开始画面「继续游戏」→ 回到集市**。控制台 0 error，教学与演示全程 **0 外部请求**；开始画面 ↔ 说明页往返 40 次后 JS 堆稳定、DOM 仅 1 块 canvas；陪伴精灵在 Worker 中渲染，进入游戏时主线程最长任务 ~220ms，自言自语与“挡回 → Sad”动作均实测。
-- **未验证**：真实 DeepSeek / Lux3D Key 的在线调用（本轮无 Key）。预置模型链路已用一份合成 GLB 在浏览器验证「manifest → GLB → Three.js」可加载；真实模型需你执行 `npm run models` 生成。
+- **端到端**（本机 Chrome + Playwright 驱动）：开始画面（黑洞 canvas 正常，桌面 / 390px 手机视口无横向溢出；7 件预置 GLB 在 Worker 中渐进替换兜底图形，离开开始页立即停止后续请求，主线程最长任务 ~200ms）→ 游戏说明 → 新游戏 → 教学关卡 → 问精灵（正常 + 防火墙挡回）→ 两件验货（WebGL canvas 正常，7 颗 / 6 颗可数）→ 砍价 320/300 → 自动收摊 → 基地 diff → 结算 → 教学完成 → 回开始画面（显示"教学已通关"）→ 演示关卡开市 → **刷新 → 开始画面「继续游戏」→ 回到集市**。控制台 0 error，教学与演示全程 **0 外部请求**；开始画面 ↔ 说明页往返 40 次后 JS 堆稳定、DOM 仅 1 块 canvas；陪伴精灵在 Worker 中渲染，进入游戏时主线程最长任务 ~220ms，自言自语与“挡回 → Sad”动作均实测。**Lux3D 精灵脚本的 HTTP 调用链用本地 mock 验证过**（含带 skin 的 GLB 加载与 6 clip 播放）；真实 Lux3D 生成需要你的 Key。
+- **未验证**：真实 DeepSeek / Lux3D Key 的在线调用（本轮无 Key）。预置模型链路已用一份合成 GLB 在浏览器验证「manifest → GLB → Three.js」可加载；真实模型需你执行 `npm run models` 生成。Lux3D 精灵脚本用本地 mock 验证了「文生 3D → 绑骨 → 动作重定向 → 下载 → manifest」全链路，并用带 skin / 6 clip 的测试 GLB 验证运行时；真实 humanoid 绑骨效果需你执行 `npm run fairy` 核验。
 
 ## 下一步
 
@@ -387,6 +403,7 @@ npm run verify
 |---|---|---|
 | P0 | **用你的 Key 跑预置模型脚本**：`npm run models` → 教学 / 演示关加载真实 GLB | `public/models/manifest.json` 含 7 件；验货页显示「本地预置模型」 |
 | P0 | 真实 Key 跑通「LLM JSON → 5×G1-Turbo → GLB 落 IndexedDB」 | 控制台可见整关 JSON + 5 个有效 GLB |
+| P0 | **用 Lux3D Key 跑 `npm run fairy`**（约 41 积分） | `public/models/fairy/manifest.json` 出现 `provider: Lux3D`、`skins > 0`、6 个动作；右下角换成 Lux3D 精灵 |
 | P0 | 用真实预置 GLB 核验计数特征保真度 | 7 颗 / 少 1 颗肉眼可辨；不稳则提高色族 / 形制权重 |
 | P1 | 部署公网静态站 + demo 视频脚本 | 评审可点开即玩 |
 | P1 | 演出继续打磨：穿越过场分层文案、揭晓音效、结算奖章 | demo 视频可录 |

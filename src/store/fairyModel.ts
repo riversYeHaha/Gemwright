@@ -1,8 +1,8 @@
 /**
  * 陪伴精灵的预置模型加载。
  *
- * `scripts/init_fairy.mjs` 生成 `public/models/fairy/fairy.glb` 与 manifest；
- * 没生成时返回 null，运行时用 `render/fairyRig` 实时构建同一套骨架兜底。
+ * 主路径由 `scripts/init_fairy.py` 调 Lux3D 生成 `public/models/fairy/fairy.glb` 与 manifest；
+ * 没生成时返回 null，运行时用 `render/fairyRig` 实时构建程序化骨架兜底。
  */
 
 export interface FairyManifest {

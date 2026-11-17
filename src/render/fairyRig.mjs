@@ -1,11 +1,11 @@
 /**
  * 陪伴精灵的共享骨架 / 动画定义。
  *
- * 这个文件同时被两处使用：
- * - `scripts/init_fairy.mjs`：在 Node 里把同一套骨架导出成带骨骼动画的 GLB；
- * - `src/render/fairyStage.ts`：没有生成 GLB 时的运行时兜底（直接构建同一套骨架）。
+ * 主路径由 `scripts/init_fairy.py` 调用 Lux3D 生成带 skin 的 humanoid GLB；
+ * 这个文件是**没有 Key / 生成失败时**的运行时兜底：
+ * `src/render/fairyStage.worker.ts` 会实时构建同一套程序化骨架与六套动画。
  *
- * 因此网页里的精灵与脚本产物形状、骨骼名、动画名完全一致。
+ * 兜底骨架的动作 key 与 Lux3D 产物保持一致（idle/talk/think/happy/sad/alert）。
  */
 
 import * as THREE from 'three';

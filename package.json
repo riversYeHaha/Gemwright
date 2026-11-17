@@ -20,8 +20,8 @@
     "format:check": "prettier --check \"src/**/*.{ts,css}\" \"tests/**/*.ts\" \"*.{ts,json}\"",
     "models": "python3 scripts/init_models.py",
     "models:dry": "python3 scripts/init_models.py --dry-run",
-    "fairy": "node scripts/init_fairy.mjs",
-    "fairy:dry": "node scripts/init_fairy.mjs --dry-run"
+    "fairy": "python3 scripts/init_fairy.py",
+    "fairy:dry": "python3 scripts/init_fairy.py --dry-run"
   },
   "dependencies": {
     "three": "^0.187.0",

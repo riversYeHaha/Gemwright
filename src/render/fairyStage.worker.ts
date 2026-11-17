@@ -181,7 +181,11 @@ function mountModel(
     actionMap = { ...FAIRY_ACTIONS, ...(manifest.actions as Partial<Record<FairyAction, string>>) };
   }
   mixer.addEventListener('finished', (event) => {
-    if (current && event.action === current && currentAction === 'happy') {
+    if (
+      current &&
+      event.action === current &&
+      (currentAction === 'happy' || currentAction === 'alert')
+    ) {
       play('idle');
     }
   });
@@ -214,7 +218,7 @@ function play(action: FairyAction): void {
   next.enabled = true;
   next.setEffectiveTimeScale(1);
   next.setEffectiveWeight(1);
-  const once = action === 'happy';
+  const once = action === 'happy' || action === 'alert';
   next.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, once ? 1 : Infinity);
   next.clampWhenFinished = once;
   if (current) next.crossFadeFrom(current, 0.28, false);
