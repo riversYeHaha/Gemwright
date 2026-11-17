@@ -7,6 +7,7 @@ import './styles/base.css';
 import './styles/components.css';
 import './styles/screens.css';
 import './styles/start.css';
+import './styles/fairy.css';
 
 /**
  * 入口：读本机设置 / 存档 → 挂载 8 屏应用。

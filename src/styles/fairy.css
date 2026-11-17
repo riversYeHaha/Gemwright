@@ -1,0 +1,261 @@
+/* ---------- 右下角常驻精灵 ---------- */
+
+body.has-fairy .app {
+  padding-bottom: 12rem;
+}
+
+.fairy-companion {
+  position: fixed;
+  right: 1.1rem;
+  bottom: 1.1rem;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  width: 188px;
+  visibility: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.26s ease,
+    transform 0.26s ease,
+    right 0.26s ease;
+}
+
+.fairy-companion.is-visible {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+}
+
+/* 集市精灵侧栏打开时，精灵已经在侧栏里，常驻形象先让位。 */
+.fairy-companion.is-docked {
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+}
+
+.fairy-companion__bubble {
+  max-width: 255px;
+  margin-right: 0.2rem;
+  padding: 0.62rem 0.8rem;
+  border-radius: 14px 14px 3px 14px;
+  border: 1px solid rgba(94, 234, 212, 0.3);
+  background: linear-gradient(180deg, rgba(16, 22, 32, 0.97), rgba(9, 13, 20, 0.95));
+  box-shadow:
+    0 18px 42px -26px rgba(0, 0, 0, 0.95),
+    inset 0 0 22px rgba(94, 234, 212, 0.04);
+  color: var(--text);
+  font-size: 0.8rem;
+  line-height: 1.65;
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.fairy-companion__bubble.is-visible {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+}
+
+.fairy-companion__bubble::after {
+  content: '';
+  position: absolute;
+  right: 1.1rem;
+  bottom: -5px;
+  width: 9px;
+  height: 9px;
+  border-right: 1px solid rgba(94, 234, 212, 0.3);
+  border-bottom: 1px solid rgba(94, 234, 212, 0.3);
+  background: rgba(9, 13, 20, 0.95);
+  transform: rotate(45deg);
+}
+
+.fairy-companion__bubble {
+  position: relative;
+}
+
+.fairy-companion__stage {
+  position: relative;
+  display: block;
+  width: 170px;
+  height: 212px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: auto;
+  cursor: pointer;
+  transform-origin: 50% 90%;
+  transition: transform 0.18s ease;
+}
+
+.fairy-companion__stage:hover {
+  transform: translateY(-2px);
+}
+
+.fairy-companion__stage:focus-visible {
+  outline: 2px solid rgba(94, 234, 212, 0.55);
+  outline-offset: 2px;
+  border-radius: 18px;
+}
+
+.fairy-companion__canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: calc(100% - 24px);
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+
+.fairy-companion.is-ready .fairy-companion__canvas {
+  opacity: 1;
+}
+
+.fairy-companion__aura {
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  width: 145%;
+  height: 74%;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(94, 234, 212, 0.2),
+    rgba(246, 183, 60, 0.06) 48%,
+    transparent 70%
+  );
+  filter: blur(7px);
+  pointer-events: none;
+}
+
+/* 3D 舞台加载前 / 不可用时的 CSS 兜底。 */
+.fairy-companion__orb {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 40px;
+  height: 40px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 34% 28%,
+    #ffffff,
+    #5eead4 38%,
+    rgba(94, 234, 212, 0.08) 72%
+  );
+  box-shadow:
+    0 0 26px rgba(94, 234, 212, 0.55),
+    0 0 60px rgba(246, 183, 60, 0.14);
+  opacity: 0.95;
+  animation: fairy-orb-pulse 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.fairy-companion.is-ready .fairy-companion__orb {
+  opacity: 0;
+  animation: none;
+}
+
+.fairy-companion__plate {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.16rem 0.52rem;
+  transform: translateX(-50%);
+  border: 1px solid rgba(94, 234, 212, 0.26);
+  border-radius: 999px;
+  background: rgba(7, 9, 14, 0.84);
+  color: var(--teal);
+  font-size: 0.66rem;
+  white-space: nowrap;
+  backdrop-filter: blur(6px);
+}
+
+.fairy-companion__dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--faint);
+}
+
+.fairy-companion__persona {
+  color: var(--faint);
+}
+
+@keyframes fairy-orb-pulse {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    box-shadow:
+      0 0 24px rgba(94, 234, 212, 0.45),
+      0 0 58px rgba(246, 183, 60, 0.12);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.12);
+    box-shadow:
+      0 0 34px rgba(94, 234, 212, 0.65),
+      0 0 70px rgba(246, 183, 60, 0.18);
+  }
+}
+
+@media (max-width: 720px) {
+  body.has-fairy .app {
+    padding-bottom: 10rem;
+  }
+
+  .fairy-companion {
+    right: 0.35rem;
+    bottom: 0.4rem;
+    width: 112px;
+  }
+
+  .fairy-companion__stage {
+    width: 104px;
+    height: 132px;
+  }
+
+  .fairy-companion__bubble {
+    max-width: 172px;
+    padding: 0.45rem 0.6rem;
+    font-size: 0.7rem;
+    line-height: 1.55;
+  }
+
+  .fairy-companion__plate {
+    font-size: 0.6rem;
+    gap: 0.22rem;
+  }
+
+  .fairy-companion__persona,
+  .fairy-companion__dot {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fairy-companion,
+  .fairy-companion__bubble,
+  .fairy-companion__stage,
+  .fairy-companion__canvas {
+    transition: none;
+  }
+
+  .fairy-companion__orb {
+    animation: none;
+  }
+}
