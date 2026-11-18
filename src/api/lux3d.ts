@@ -11,7 +11,7 @@ import { LevelError } from '../types/level';
 export type Lux3DRegion = 'china' | 'global';
 
 export const LUX3D_BASES: Record<Lux3DRegion, string> = {
-  china: 'https://api.aholo3d.cn',
+  china: 'https://api.aholo.cn',
   global: 'https://api.aholo.ai/global',
 };
 

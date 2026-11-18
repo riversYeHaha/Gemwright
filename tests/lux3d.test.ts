@@ -26,7 +26,7 @@ describe('Lux3DClient', () => {
     expect(taskId).toBe('777');
 
     const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe('https://api.aholo3d.cn/lux3d/v1/generate/text-to-3d/task/create');
+    expect(url).toBe(`${LUX3D_BASES.china}/lux3d/v1/generate/text-to-3d/task/create`);
     expect((init.headers as Record<string, string>).Authorization).toBe('lux-key');
     const body = JSON.parse(String(init.body));
     expect(body.version).toBe('G1-Turbo');

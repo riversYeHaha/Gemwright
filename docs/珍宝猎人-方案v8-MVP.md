@@ -30,7 +30,7 @@
 | API | CORS 实测 | 鉴权 | 结论 |
 |---|---|---|---|
 | DeepSeek `api.deepseek.com/chat/completions` | `access-control-allow-origin` 回显请求源；allow-headers 含 `authorization,content-type`；allow-methods POST | `Authorization: Bearer <sk-...>` | **浏览器直连可行** |
-| Lux3D `api.aholo3d.cn/lux3d/v1/*` | `access-control-allow-origin: *`（v6 已测，全端点预检通过） | `Authorization: <API Key>`（**无 Bearer 前缀**，加了反而 invalid） | **浏览器直连可行** |
+| Lux3D `api.aholo.cn/lux3d/v1/*` | 预检 `access-control-allow-origin: *`；错误响应可能无 CORS 头（见排障） | `Authorization: <API Key>`（**无 Bearer 前缀**，加了反而 invalid） | **浏览器直连可行（需有效 Key / 地区）** |
 
 两个 API 都开放 CORS → **单页静态站即可运行**，玩家在设置页填入 DeepSeek Key + Lux3D Key（存自己浏览器的本地存储），即玩。Key 不经过任何服务器。
 

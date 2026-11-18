@@ -45,7 +45,7 @@ POLL_INTERVAL = 3
 TASK_TIMEOUT = 300
 
 REGIONS = {
-    "china": "https://api.aholo3d.cn",
+    "china": "https://api.aholo.cn",
     "global": "https://api.aholo.ai/global",
 }
 

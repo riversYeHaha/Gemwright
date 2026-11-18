@@ -42,7 +42,7 @@ export function renderSettings(state: AppState): HTMLElement {
   const regionSelect = h(
     'select',
     { class: 'input', attrs: { 'aria-label': 'Lux3D 地区' } },
-    h('option', { text: '国内 · api.aholo3d.cn', attrs: { value: 'china' } }),
+    h('option', { text: '国内 · api.aholo.cn', attrs: { value: 'china' } }),
     h('option', { text: '国际 · api.aholo.ai', attrs: { value: 'global' } }),
   );
   regionSelect.value = state.settings.region;

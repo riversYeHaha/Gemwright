@@ -321,6 +321,26 @@ npm run fairy       # 文生 3D → 绑骨 → 动作重定向 → public/models
 
 部署：`npm run build` 后把 `dist/` 丢到任意静态托管即可；Key 只在玩家浏览器里，不经任何服务器。
 
+### Lux3D 报 CORS / Failed to fetch 时
+
+**先不要靠“部署”解决**：静态部署只换页面域名，不会给 Lux3D 的响应加 `Access-Control-Allow-Origin`；本地和线上受同样的浏览器 CORS 约束。Lux3D 的预检请求是放行的（`access-control-allow-origin: *`），但 **401 / 400 等错误响应没有 CORS 头**，所以浏览器会把“Key 无效 / 地区不对 / 积分不足”显示成跨域错误。
+
+先用 curl 看到真实 HTTP 状态（不要打印 Key）：
+
+```bash
+read -s LUX3D_KEY
+curl -i https://api.aholo.cn/lux3d/v1/generate/text-to-3d/task/create \
+  -H "Authorization: $LUX3D_KEY" -H "Content-Type: application/json" \
+  -d '{"prompt":"a red cube","version":"G1-Turbo","faceCount":10000,"style":"photorealistic","outputFormat":["glb"],"enablePbr":true}'
+unset LUX3D_KEY
+```
+
+- 返回 `401 {"m":"invalid appKey"}`：Key 无效、带上了 `Bearer `、或地区选错（国内 `api.aholo.cn` / 国际 `api.aholo.ai/global`）。
+- 返回 `200` 且带 `access-control-allow-origin`：浏览器可直连，检查是否硬刷新、Key 是否保存成功。
+- 返回 `200` 但不带 CORS 头：静态部署也没用，需要在部署平台加一个同源 serverless 代理（如 `/api/lux3d/*` 转发），或换用支持浏览器直连的 Key/端点。
+
+> 当前国内端点已统一为 `https://api.aholo.cn`（旧网关 `api.aholo3d.cn` 仅作兼容）。`npm run fairy` 能成功生成，说明同一把 Key 至少能在服务端通过；浏览器仍失败时优先按上面的 curl 结果排查，而不是先部署。
+
 ## 实现进度
 
 | 方案模块 | 代码 | 状态 |
