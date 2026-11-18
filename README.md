@@ -70,7 +70,7 @@
 
 ![陪伴精灵](docs/screenshots/fairy-companion.jpg)
 
-> 截图是**未配置 Lux3D Key** 时的程序化兜底形象；运行 `npm run fairy` 后，精灵会换成 Lux3D 文生 3D + 绑骨 + 动作重定向的 GLB。
+> 截图是 `npm run fairy` 生成的 Lux3D 精灵：文生 3D → 数字人自动绑骨 → 6 个动作重定向；只有未配置 Key / 生成失败时才会退回程序化兜底。
 
 - **常驻右下角**：只在穿越 / 集市 / 验货 / 基地出现；在集市点它会唤出精灵面板（面板打开时它让位给侧栏），其它屏幕点它只说句话。
 - **六套动作**：`Idle` / `Talk` / `Think` / `Happy` / `Sad` / `Alert`，由运行时状态自动匹配，交叉淡入。
