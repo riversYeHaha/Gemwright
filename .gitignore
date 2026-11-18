@@ -35,3 +35,6 @@ tmp/
 
 # 预置 3D 模型（由 scripts/init_models.py 生成，不入库）
 public/models/
+
+# local deployment tools
+.tools/

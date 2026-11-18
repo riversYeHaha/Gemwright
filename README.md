@@ -343,6 +343,22 @@ unset LUX3D_KEY
 
 > 当前国内端点已统一为 `https://api.aholo.cn`（旧网关 `api.aholo3d.cn` 仅作兼容）。`npm run fairy` 能成功生成，说明同一把 Key 至少能在服务端通过；浏览器仍失败时优先按上面的 curl 结果排查，而不是先部署。
 
+## ModelScope Studio 部署（Docker）
+
+线上 Demo：**https://modelscope.cn/studios/riversHaha/gemwright**
+
+公开空间，Docker + 同源 Lux3D 代理；首次加载内置模型/精灵 GLB 会受免费 2v CPU 实例带宽影响，可能较慢。
+
+- 构建必须带同源代理标记，否则静态站没有 Lux3D 代理，线上仍会被 CORS 挡：
+  ```bash
+  VITE_LUX3D_PROXY=1 npm run build
+  ```
+- `deploy/modelscope/server.mjs` 提供静态服务 + Lux3D 同源反向代理，监听 `0.0.0.0:7860`；`deploy/modelscope/Dockerfile` 为 ModelScope Docker 构建件。
+- `dist/models/` 会包含陪伴精灵与预置珍宝 GLB（约 101MB），随镜像一起部署；仓库主分支不提交这些模型。
+- ModelScope 仓库使用 Git LFS 管理 `.glb`，避免 pre-receive 大文件拒收。
+- 注意：`npm run build` 不带 `VITE_LUX3D_PROXY=1` 时产物仍是纯静态直连版，适合支持 CORS 的托管；ModelScope 静态站不要使用这个构建。
+
+
 ## 实现进度
 
 | 方案模块 | 代码 | 状态 |

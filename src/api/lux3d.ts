@@ -22,10 +22,13 @@ export const LUX3D_BASES: Record<Lux3DRegion, string> = {
  * Vitest 的 MODE 是 test，不能走代理，否则单测 URL 会变成相对路径。
  */
 const USE_DEV_PROXY = import.meta.env.DEV && import.meta.env.MODE !== 'test';
+// 部署到同源反代（如 ModelScope Docker）时，构建前设置 VITE_LUX3D_PROXY=1。
+const USE_BUILD_PROXY = import.meta.env.VITE_LUX3D_PROXY === '1';
+const USE_PROXY = USE_DEV_PROXY || USE_BUILD_PROXY;
 
 export const LUX3D_REQUEST_BASES: Record<Lux3DRegion, string> = {
-  china: USE_DEV_PROXY ? '' : LUX3D_BASES.china,
-  global: USE_DEV_PROXY ? '/lux3d-global' : LUX3D_BASES.global,
+  china: USE_PROXY ? '' : LUX3D_BASES.china,
+  global: USE_PROXY ? '/lux3d-global' : LUX3D_BASES.global,
 };
 
 export const LUX3D_STATUS_LABELS: Record<number, string> = {
