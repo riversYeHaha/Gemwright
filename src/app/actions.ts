@@ -47,6 +47,8 @@ import {
 
 /** 3D 布展的取消句柄（同时用于停止 5 个并行任务与轮询）。 */
 let modelAbortController: AbortController | null = null;
+/** 已成功写入长期归档的关卡；结算时只删关卡缓存，不重复搬 Blob。 */
+const archivedLevels = new Set<string>();
 /** 进入教学前的真实存档，退出教学时恢复。 */
 let playerBeforeTutorial: PlayerState | null = null;
 
@@ -349,6 +351,47 @@ export async function testDeepSeekKey(apiKeyOverride?: string): Promise<void> {
 /* 教学关卡                                                             */
 /* ------------------------------------------------------------------ */
 
+/**
+ * 教学 / 演示关的预置模型：在进入穿越页后立刻显示全屏加载动画，
+ * 等 2 / 5 件 GLB 都落进 memory 再放行（不再让玩家在占位模型和真模型之间猜）。
+ */
+async function loadPresetModels(level: LevelJson, message: string): Promise<void> {
+  store.set({
+    busy: {
+      kind: 'models',
+      message,
+      ratio: 0,
+      slots: createSlotProgress(level),
+      logs: ['预置模型按关卡清单加载，完成后自动进入世界。'],
+    },
+  });
+  try {
+    const models = await loadLevelLocalModels(level, {
+      onItem: (itemId, index, status) => {
+        const current = store.get();
+        if (!current.busy || current.busy.kind !== 'models') return;
+        const stall = level.stalls[index];
+        if (!stall) return;
+        store.set({
+          busy: applyModelProgress(current.busy, {
+            itemId,
+            itemName: stall.item.name,
+            index,
+            total: level.stalls.length,
+            status,
+            ...(status === 'failed' ? { message: '未找到预置模型，使用占位模型' } : {}),
+          }),
+        });
+      },
+    });
+    if (store.get().level?.id !== level.id) return;
+    store.set({ models, busy: null });
+  } catch {
+    if (store.get().level?.id !== level.id) return;
+    store.set({ busy: null });
+  }
+}
+
 export function startTutorial(): void {
   const state = store.get();
   if (state.busy) return;
@@ -376,9 +419,7 @@ export function startTutorial(): void {
     resumeAvailable: false,
     attempts: 1,
   });
-  void resolveModelsForLevel(level).then((models) => {
-    if (store.get().level?.id === level.id) store.set({ models });
-  });
+  void loadPresetModels(level, '正在加载教学关 3D 珍宝');
 }
 
 /** 教学关卡的预设问答：不调模型，但走真实额度与日志（含一次防火墙挡回）。 */
@@ -564,6 +605,14 @@ async function refreshModels(level: LevelJson): Promise<void> {
     return;
   }
 
+  if (level.kind === 'generated') {
+    try {
+      await gameCache.archiveModels(level, result.models);
+      archivedLevels.add(level.id);
+    } catch {
+      // 归档失败时结算会再尝试一次；不阻塞当前展示。
+    }
+  }
   const failed = Object.keys(result.errors).length;
   store.set({
     models: result.models,
@@ -617,12 +666,10 @@ export function startDemoLevel(): void {
     recyclePlan: {},
     resumeAvailable: true,
     tutorial: emptyTutorialProgress(),
-    notice: { kind: 'info', text: '演示关卡：不调用任何 API，3D 用程序化占位模型。' },
+    notice: { kind: 'info', text: '演示关卡：不调用任何 API，3D 优先加载内置预置模型。' },
   });
   persistActiveRun();
-  void resolveModelsForLevel(level).then((models) => {
-    if (store.get().level?.id === level.id) store.set({ models });
-  });
+  void loadPresetModels(level, '正在加载演示关 3D 珍宝');
 }
 
 /* ------------------------------------------------------------------ */
@@ -770,6 +817,15 @@ export function settleNow(): void {
   } else {
     saveProfile(session.player);
     persistActiveRun();
+    // 正式关结束后：把真实 GLB 归档到可下载列表，再删掉关卡级缓存。
+    // 归档失败时保留关卡缓存，宁可多占空间也不默默丢文件。
+    if (level.kind === 'generated') {
+      if (archivedLevels.has(level.id)) {
+        void gameCache.deleteLevel(level.id);
+      } else {
+        void archiveGeneratedLevel(level, state.models);
+      }
+    }
   }
 
   store.set({
@@ -785,6 +841,17 @@ export function settleNow(): void {
           : `本关净亏 ${Math.abs(settlement.net)} 星际币，经验不变`,
     },
   });
+}
+
+/** 结算后的持久化：先写 library，成功后再释放 level/models 缓存。 */
+async function archiveGeneratedLevel(level: LevelJson, models: ModelMap): Promise<void> {
+  try {
+    await gameCache.archiveModels(level, models);
+    archivedLevels.add(level.id);
+    await gameCache.deleteLevel(level.id);
+  } catch {
+    // IndexedDB 不可用 / 配额满：不阻塞结算，当前页仍可用。
+  }
 }
 
 export function nextLevel(): void {

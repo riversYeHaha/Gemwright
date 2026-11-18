@@ -122,6 +122,15 @@ export function renderStart(state: AppState): HTMLElement {
             text: '穿越到 LLM 现场生成的异世界集市，砍价买下 3D 珍宝，回基地鉴宝回收。',
           }),
           menu,
+          h(
+            'button',
+            {
+              class: 'start__archive-link',
+              attrs: { type: 'button' },
+              on: { click: () => navigate('library') },
+            },
+            '▤ 生成列表 · 下载 Lux3D 模型',
+          ),
           meta,
         ),
       ),

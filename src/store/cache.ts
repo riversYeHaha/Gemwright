@@ -9,9 +9,10 @@ import type { ActiveRunSnapshot, LevelJson, PlayerState } from '../types/level';
  */
 
 const DB_NAME = 'gemwright';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const LEVEL_STORE = 'levels';
 const MODEL_STORE = 'models';
+const LIBRARY_STORE = 'library';
 export const PROFILE_STORAGE_KEY = 'gemwright.profile.v1';
 export const ACTIVE_RUN_KEY = 'gemwright.run.v1';
 export const TUTORIAL_DONE_KEY = 'gemwright.tutorial.v1';
@@ -22,6 +23,26 @@ interface ModelRecord {
   itemId: string;
   blob: Blob;
   createdAt: number;
+}
+
+/**
+ * 归档模型：关卡结算后从 `models` 迁到这里，既释放关卡缓存，又保留可下载原件。
+ * `models` 只服务当前关卡 / 续玩；`library` 是玩家可浏览、下载、手动清理的生成列表。
+ */
+export interface LibrarySummary {
+  key: string;
+  levelId: string;
+  itemId: string;
+  name: string;
+  creator: string;
+  authentic: boolean;
+  worldName: string;
+  savedAt: number;
+  size: number;
+}
+
+interface LibraryRecord extends LibrarySummary {
+  blob: Blob;
 }
 
 export interface CachedLevelSummary {
@@ -52,6 +73,7 @@ export class GameCache {
   private dbPromise: Promise<IDBDatabase | null> | null = null;
   private readonly memoryLevels = new Map<string, LevelJson>();
   private readonly memoryModels = new Map<string, ModelRecord>();
+  private readonly memoryLibrary = new Map<string, LibraryRecord>();
   private memoryOnly = false;
 
   constructor(private readonly factory: IDBFactory | null) {}
@@ -76,6 +98,9 @@ export class GameCache {
           }
           if (!db.objectStoreNames.contains(MODEL_STORE)) {
             db.createObjectStore(MODEL_STORE, { keyPath: 'key' });
+          }
+          if (!db.objectStoreNames.contains(LIBRARY_STORE)) {
+            db.createObjectStore(LIBRARY_STORE, { keyPath: 'key' });
           }
         };
         request.onsuccess = () => resolve(request.result);
@@ -181,14 +206,87 @@ export class GameCache {
     await transactionDone(tx);
   }
 
+  /** 把当前关卡里真实生成出的 GLB 写入长期归档（跳过 null / 占位模型）。 */
+  async archiveModels(level: LevelJson, models: ModelMap): Promise<number> {
+    const savedAt = Date.now();
+    const records: LibraryRecord[] = [];
+    for (const stall of level.stalls) {
+      const blob = models[stall.itemId];
+      if (!blob) continue;
+      const creator =
+        level.creators.find((entry) => entry.id === stall.creatorId)?.name ?? '未知创作人';
+      records.push({
+        key: `${level.id}:${stall.itemId}`,
+        levelId: level.id,
+        itemId: stall.itemId,
+        name: stall.item.name,
+        creator,
+        authentic: stall.item.isAuthentic,
+        worldName: level.world.name,
+        savedAt,
+        size: blob.size,
+        blob,
+      });
+    }
+    if (records.length === 0) return 0;
+    for (const record of records) this.memoryLibrary.set(record.key, record);
+    const db = await this.open();
+    if (!db) return records.length;
+    const tx = db.transaction(LIBRARY_STORE, 'readwrite');
+    for (const record of records) tx.objectStore(LIBRARY_STORE).put(record);
+    await transactionDone(tx);
+    return records.length;
+  }
+
+  async listLibrary(): Promise<LibrarySummary[]> {
+    const db = await this.open();
+    const records = db
+      ? await requestToPromise<LibraryRecord[]>(
+          db.transaction(LIBRARY_STORE, 'readonly').objectStore(LIBRARY_STORE).getAll(),
+        )
+      : [...this.memoryLibrary.values()];
+    return records
+      .map(({ blob: _blob, ...summary }) => summary)
+      .sort((a, b) => b.savedAt - a.savedAt);
+  }
+
+  async getLibraryModel(key: string): Promise<Blob | null> {
+    const db = await this.open();
+    if (!db) return this.memoryLibrary.get(key)?.blob ?? null;
+    const record = await requestToPromise<LibraryRecord | undefined>(
+      db.transaction(LIBRARY_STORE, 'readonly').objectStore(LIBRARY_STORE).get(key),
+    );
+    return record?.blob ?? this.memoryLibrary.get(key)?.blob ?? null;
+  }
+
+  async deleteLibraryModel(key: string): Promise<void> {
+    this.memoryLibrary.delete(key);
+    const db = await this.open();
+    if (!db) return;
+    const tx = db.transaction(LIBRARY_STORE, 'readwrite');
+    tx.objectStore(LIBRARY_STORE).delete(key);
+    await transactionDone(tx);
+  }
+
+  async clearLibrary(): Promise<void> {
+    this.memoryLibrary.clear();
+    const db = await this.open();
+    if (!db) return;
+    const tx = db.transaction(LIBRARY_STORE, 'readwrite');
+    tx.objectStore(LIBRARY_STORE).clear();
+    await transactionDone(tx);
+  }
+
   async clear(): Promise<void> {
     this.memoryLevels.clear();
     this.memoryModels.clear();
+    this.memoryLibrary.clear();
     const db = await this.open();
     if (!db) return;
-    const tx = db.transaction([LEVEL_STORE, MODEL_STORE], 'readwrite');
+    const tx = db.transaction([LEVEL_STORE, MODEL_STORE, LIBRARY_STORE], 'readwrite');
     tx.objectStore(LEVEL_STORE).clear();
     tx.objectStore(MODEL_STORE).clear();
+    tx.objectStore(LIBRARY_STORE).clear();
     await transactionDone(tx);
   }
 }

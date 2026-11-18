@@ -1,6 +1,5 @@
 import {
   beginShopping,
-  cancelModelGeneration,
   dismissNotice,
   navigate,
   nextLevel,
@@ -12,10 +11,10 @@ import type { AppState } from '../../app/store';
 import { estimateCredits } from '../../api/lux3d';
 import { ITEMS_PER_LEVEL, targetAuthenticCount } from '../../config/constants';
 import { appendAll, button, fmt, h } from '../dom';
-import { badge, noticeBar, progressSlots, screenHead, section, traitTable } from '../components';
+import { badge, noticeBar, screenHead, section, traitTable } from '../components';
 import { tutorialCoach } from '../tutorial';
 
-/** 穿越：抽种子 → 读世界 / 创作人规范 / 精灵简报 → 开市（3D 在后台并行布展）。 */
+/** 穿越：抽种子 → 读世界 / 创作人规范 / 精灵简报 → 开市；模型未齐时由全屏布展层挡住。 */
 export function renderTravel(state: AppState): HTMLElement {
   const body = h('div', { class: 'screen-body' });
   appendAll(
@@ -214,24 +213,11 @@ function levelPreview(state: AppState): HTMLElement {
       }),
     ),
     section('创作人档案', creators),
-    state.busy?.kind === 'models'
-      ? section('集市布展', progressSlots(state.busy))
-      : h(
-          'div',
-          { class: 'actions-row' },
-          button('开市', { variant: 'primary', onClick: () => beginShopping() }),
-          button('换一个世界', { variant: 'subtle', onClick: () => nextLevel() }),
-        ),
-    state.busy?.kind === 'models'
-      ? h(
-          'div',
-          { class: 'actions-row' },
-          button('先开市（占位模型也能看）', {
-            variant: 'primary',
-            onClick: () => beginShopping(),
-          }),
-          button('停止布展', { variant: 'subtle', onClick: () => cancelModelGeneration() }),
-        )
-      : null,
+    h(
+      'div',
+      { class: 'actions-row' },
+      button('开市', { variant: 'primary', onClick: () => beginShopping() }),
+      button('换一个世界', { variant: 'subtle', onClick: () => nextLevel() }),
+    ),
   );
 }

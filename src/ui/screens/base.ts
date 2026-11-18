@@ -331,11 +331,20 @@ function renderSettlement(state: AppState, settlement: Settlement): HTMLElement 
           variant: 'subtle',
           onClick: () => nextLevel(),
         }),
+        state.demoMode || state.level?.kind !== 'generated'
+          ? null
+          : button('查看生成列表', { variant: 'subtle', onClick: () => navigate('library') }),
       ),
       h('p', {
         class: 'hint',
         text: `当前世界：${state.level?.world.name ?? ''}。下一关会抽到新的世界种子，物价指数与创作人档位都会变。`,
       }),
+      !isTutorial && state.level?.kind === 'generated'
+        ? h('p', {
+            class: 'hint',
+            text: '本关 3D 模型已归档到「生成列表」，可随时重新下载；关卡缓存会在结算后自动清理。',
+          })
+        : null,
     ),
   );
 }

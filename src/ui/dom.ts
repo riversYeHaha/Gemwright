@@ -116,3 +116,16 @@ export function typewrite(node: HTMLElement, text: string, speedMs = 18): void {
     }, speedMs);
   });
 }
+
+/** 把 IndexedDB 里的 Blob 还原成浏览器下载。 */
+export function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.rel = 'noopener';
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}

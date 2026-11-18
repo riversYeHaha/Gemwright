@@ -98,12 +98,23 @@ export async function loadLocalModel(
   }
 }
 
+export interface LocalModelLoadHooks {
+  /** 单件开始 / 结束；用于登录页 / 加载动画显示进度。 */
+  onItem?: (itemId: string, index: number, status: 'running' | 'done' | 'failed') => void;
+}
+
 /** 一次加载一关的全部预置模型（教学 2 件 / 演示 5 件）。 */
-export async function loadLevelLocalModels(level: LevelJson): Promise<Record<string, Blob | null>> {
+export async function loadLevelLocalModels(
+  level: LevelJson,
+  hooks: LocalModelLoadHooks = {},
+): Promise<Record<string, Blob | null>> {
   const entries = await Promise.all(
-    level.stalls.map(
-      async (stall) => [stall.itemId, await loadLocalModel(level.id, stall.itemId)] as const,
-    ),
+    level.stalls.map(async (stall, index) => {
+      hooks.onItem?.(stall.itemId, index, 'running');
+      const blob = await loadLocalModel(level.id, stall.itemId);
+      hooks.onItem?.(stall.itemId, index, blob ? 'done' : 'failed');
+      return [stall.itemId, blob] as const;
+    }),
   );
   return Object.fromEntries(entries);
 }

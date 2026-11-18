@@ -192,6 +192,7 @@ export function renderSettings(state: AppState): HTMLElement {
           onClick: () => resetProfile(),
         }),
         button('去穿越', { variant: 'ghost', onClick: () => navigate('travel') }),
+        button('打开生成列表', { variant: 'subtle', onClick: () => navigate('library') }),
       ),
     ),
   );

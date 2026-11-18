@@ -866,3 +866,53 @@
     filter: none;
   }
 }
+
+/* ---------- 生成列表 / 本地归档 ---------- */
+.library-summary {
+  color: var(--teal);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+.library-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.library-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.library-row__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.library-row__name {
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.library-row__meta {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.library-row__meta--sub {
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+}
+
+.library-row .actions-row {
+  margin-top: 0.4rem;
+}

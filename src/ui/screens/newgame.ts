@@ -55,7 +55,7 @@ export function renderNewGame(state: AppState): HTMLElement {
         desc: 'LLM 现场生成异世界、创作人规范与 5 件珍宝，Lux3D 实时生成 3D 模型。每一局都不一样。',
         points: [
           '世界有独立物价、创作人档位与做伪风气',
-          '5 件珍宝并行布展，可随时停止',
+          '先显示全屏布展动画，模型齐了再开市',
           '刷新后可从开始页继续这一局',
         ],
         action: button(hasDeepSeek ? '选择世界并出发' : '去设置 Key', {
