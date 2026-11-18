@@ -35,6 +35,19 @@ describe('Lux3DClient', () => {
     expect(body.enablePbr).toBe(true);
   });
 
+  it('同源代理模式额外发送 X-Lux3D-Key（ModelScope 网关会改写 Authorization）', async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse({ c: '0', d: 888 }));
+    const client = new Lux3DClient({
+      apiKey: 'lux-key',
+      baseUrl: '',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    await client.createTextTo3D('x');
+    const [, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+    expect((init.headers as Record<string, string>)['X-Lux3D-Key']).toBe('lux-key');
+    expect((init.headers as Record<string, string>).Authorization).toBe('lux-key');
+  });
+
   it('国际区端点带 /global 前缀', async () => {
     const fetchImpl = vi.fn(async () => jsonResponse({ c: '0', d: 1 }));
     const client = new Lux3DClient({

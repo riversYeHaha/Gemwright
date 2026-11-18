@@ -136,6 +136,8 @@ export class Lux3DClient {
   private readonly fetchImpl: typeof fetch;
   private readonly pollIntervalMs: number;
   private readonly timeoutMs: number;
+  /** 相对 base 说明请求经过同源代理；ModelScope 网关会改写 Authorization，改用自定义头带 Key。 */
+  private readonly proxyMode: boolean;
 
   constructor(options: Lux3DClientOptions) {
     if (!options.apiKey.trim()) throw new Lux3DError('缺少 Lux3D API Key');
@@ -148,10 +150,16 @@ export class Lux3DClient {
     this.fetchImpl = (options.fetchImpl ?? globalThis.fetch).bind(globalThis);
     this.pollIntervalMs = options.pollIntervalMs ?? LUX3D_POLL_INTERVAL_MS;
     this.timeoutMs = options.timeoutMs ?? LUX3D_TASK_TIMEOUT_MS;
+    this.proxyMode = !/^https?:\/\//i.test(this.baseUrl);
   }
 
   private headers(extra: Record<string, string> = {}): Record<string, string> {
-    return { Authorization: this.apiKey, Accept: 'application/json', ...extra };
+    return {
+      Authorization: this.apiKey,
+      Accept: 'application/json',
+      ...(this.proxyMode ? { 'X-Lux3D-Key': this.apiKey } : {}),
+      ...extra,
+    };
   }
 
   private async json(path: string, init: RequestInit): Promise<unknown> {

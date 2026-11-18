@@ -44,6 +44,10 @@ function proxy(req, res, upstream) {
   for (const name of ['authorization', 'content-type', 'accept', 'accept-language', 'user-agent']) {
     if (req.headers[name]) headers[name] = req.headers[name];
   }
+  // ModelScope 的 ms.show 网关会用平台 token 改写 / 消费 Authorization，
+  // 因此浏览器端在代理模式额外发送 X-Lux3D-Key；服务端把它还原成 Lux3D 需要的裸 Key。
+  const proxyKey = req.headers['x-lux3d-key'];
+  if (typeof proxyKey === 'string' && proxyKey.trim()) headers.authorization = proxyKey.trim();
   const target = httpsRequest(
     {
       hostname: upstream.hostname,

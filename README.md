@@ -125,6 +125,7 @@ npm run fairy -- --region global  # 国际 Key
   - 结算时：先把 5 件真实 GLB 归档到 `library`，归档成功后再删除该关的 `levels / models` 缓存，释放关卡级空间。
   - 归档列表：开始页「生成列表」、设置页「打开生成列表」、基地结算页「查看生成列表」都可进入；支持逐件下载 GLB、逐件删除、清空全部归档。
 - **清理的边界**：自动清理只删「关卡缓存」，`library` 归档保留；只有你手动「删除归档 / 清空全部归档」才会真正释放文件。清空后无法找回——Lux3D 输出 URL 仅 2 小时有效，重新生成会再次消耗积分。
+- **ModelScope 网关注意**：`ms.show` 会用平台 token 消费 / 改写 `Authorization`，所以代理模式额外发送 `X-Lux3D-Key`，由 `deploy/modelscope/server.mjs` 还原成 Lux3D 需要的裸 Key；直连模式不发送该头，避免触发额外 CORS 预检。
 - **教学 / 演示关**：使用 `public/models/` 预置 GLB，不进入生成列表；正式关只有 Lux3D 真实产物才归档，程序化占位模型不会写入。
 
 
@@ -170,7 +171,7 @@ npm run fairy -- --region global  # 国际 Key
 | 精灵动画 | **Lux3D 文生 3D + 自动绑骨 + 动作重定向 + AnimationMixer / OffscreenCanvas Worker** | 主路径是带 skin 的 humanoid + 6 个 AnimationClip；兜底为 12 骨程序化骨架；渲染在 Worker，不卡主线程 |
 | 校验 | **Zod 4** | schema 失败信息直接回灌 LLM 做定向重试 |
 | 存储 | **localStorage + IndexedDB** | Key / 存档 / 续玩快照走 localStorage；关卡 JSON 与 GLB blob 走 IndexedDB |
-| 测试 | **Vitest 5 + happy-dom** | 25 个测试文件 / 108 个用例 |
+| 测试 | **Vitest 5 + happy-dom** | 25 个测试文件 / 109 个用例 |
 | 工程化 | **ESLint 10（flat config）+ Prettier 3** | `npm run verify` 串起 typecheck → lint → test → build |
 | 样式 | **原生 CSS + 设计 token** | 按 token / base / 组件 / 屏幕分层，无 Tailwind 构建链 |
 
@@ -238,7 +239,7 @@ Gemwright/
 │   │   ├── modelLoading.ts       全屏 3D 布展动画（等待全部模型）
 │   │   ├── fairyTalk.ts          动作匹配 + 静态台词池（纯函数）
 │   │   └── screens/              start / newgame / guide / settings / library / travel / market / inspect / base
-├── tests/                        25 个测试文件 / 108 个用例
+├── tests/                        25 个测试文件 / 109 个用例
 └── docs/
     ├── 珍宝猎人-方案v8-MVP.md     权威方案 v8.1
     ├── 开发指南.md                模块职责、数据流、不变量、扩展方式
@@ -280,7 +281,7 @@ public/models/manifest.json → loadLocalModel() → GLB Blob → TreasureViewer
 npm install
 npm run dev         # http://127.0.0.1:5173
 npm run build       # 产物 dist/，相对路径，可直接静态托管
-npm run test        # Vitest：108 个用例
+npm run test        # Vitest：109 个用例
 npm run lint        # ESLint（flat config）
 npm run format      # Prettier 写回 src/tests/配置
 npm run verify      # typecheck + lint + test + build（提交前一键）
@@ -438,7 +439,7 @@ unset LUX3D_KEY
 npm run verify
 # tsc --noEmit ✓（strict + noUnusedLocals）
 # eslint ✓（flat config）
-# vitest: 25 files / 108 tests ✓
+# vitest: 25 files / 109 tests ✓
 # vite build: dist/ ✓
 #   主包 index-*.js  ~220KB / gzip ~75KB
 #   3D chunk viewer-*.js ~651KB / gzip ~163KB（按需加载）
