@@ -3,6 +3,7 @@ import { bootstrapState } from '../src/app/actions';
 import { createTutorialLevel } from '../src/game/tutorial/level';
 import { LevelSession } from '../src/game/level';
 import type { AppState } from '../src/app/store';
+import { store } from '../src/app/store';
 import {
   disposeFairyCompanion,
   fairyCompanionDebug,
@@ -45,6 +46,16 @@ describe('右下角常驻精灵', () => {
 
     const canvas = root?.querySelector('canvas');
     expect(canvas).not.toBeNull();
+  });
+
+  it('双击常驻精灵会打开集市精灵面板', () => {
+    store.set({ fairyOpen: false });
+    updateFairyCompanion(marketState());
+    const stage = document.querySelector<HTMLButtonElement>('button.fairy-companion__stage');
+    expect(stage).not.toBeNull();
+    stage?.click();
+    stage?.click();
+    expect(store.get().fairyOpen).toBe(true);
   });
 
   it('离开游戏屏后隐藏并清掉常驻状态', () => {

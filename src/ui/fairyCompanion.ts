@@ -28,6 +28,8 @@ const SELF_TALK_MIN_MS = 12_000;
 const SELF_TALK_MAX_MS = 24_000;
 const BUBBLE_MS = 6200;
 const STAGE_DELAY_MS = 650;
+/** 单击说句话；两次点击间隔小于这个值视为双击，打开聊天面板。 */
+const DOUBLE_CLICK_MS = 280;
 
 let root: HTMLElement | null = null;
 let stageButton: HTMLButtonElement | null = null;
@@ -53,6 +55,8 @@ let pendingReaction: FairyReaction | null = null;
 
 let bubbleTimer = 0;
 let selfTalkTimer = 0;
+let clickTimer = 0;
+let lastClickAt = 0;
 
 export function mountFairyCompanion(): void {
   if (root) return;
@@ -73,20 +77,39 @@ export function mountFairyCompanion(): void {
     'button',
     {
       class: 'fairy-companion__stage',
-      attrs: { type: 'button', title: '和鉴宝精灵互动' },
+      attrs: { type: 'button', title: '单击说句话，双击唤出精灵面板' },
       on: {
         click: () => {
           const state = currentState;
           if (!state) return;
-          if (state.screen === 'market' && state.level && state.session) {
-            toggleFairyPanel();
+          const now = performance.now();
+          if (now - lastClickAt < DOUBLE_CLICK_MS) {
+            lastClickAt = 0;
+            clearTimeout(clickTimer);
+            clickTimer = 0;
+            if (state.screen === 'market' && state.level && state.session) {
+              toggleFairyPanel(true);
+            } else {
+              showBubble(
+                state.level ? selfTalkLine(state) : '先找到一座坊市，我才有热闹可看。',
+                'talk',
+                5200,
+              );
+            }
             return;
           }
-          showBubble(
-            state.level ? selfTalkLine(state) : '先找到一座坊市，我才有热闹可看。',
-            'talk',
-            5200,
-          );
+          lastClickAt = now;
+          clearTimeout(clickTimer);
+          clickTimer = window.setTimeout(() => {
+            clickTimer = 0;
+            const latest = currentState;
+            if (!visible || docked) return;
+            showBubble(
+              latest?.level ? selfTalkLine(latest) : '先找到一座坊市，我才有热闹可看。',
+              'talk',
+              5200,
+            );
+          }, DOUBLE_CLICK_MS);
         },
       },
     },
@@ -207,9 +230,12 @@ export function disposeFairyCompanion(): void {
   clearTimeout(bubbleTimer);
   clearTimeout(selfTalkTimer);
   clearTimeout(stageTimer);
+  clearTimeout(clickTimer);
   bubbleTimer = 0;
   selfTalkTimer = 0;
   stageTimer = 0;
+  clickTimer = 0;
+  lastClickAt = 0;
   stage?.dispose();
   stage = null;
   stageReady = false;
@@ -256,6 +282,9 @@ function hideCompanion(): void {
   bubble?.classList.remove('is-visible');
   clearTimeout(bubbleTimer);
   clearTimeout(selfTalkTimer);
+  clearTimeout(clickTimer);
+  clickTimer = 0;
+  lastClickAt = 0;
   if (stageTimer) {
     clearTimeout(stageTimer);
     stageTimer = 0;
@@ -270,7 +299,7 @@ function updateIdentity(state: AppState): void {
   const { name, persona } = fairyDisplayName(state);
   if (nameLabel) nameLabel.textContent = name;
   if (personaLabel) personaLabel.textContent = persona;
-  stageButton?.setAttribute('aria-label', `和鉴宝精灵「${name}」互动`);
+  stageButton?.setAttribute('aria-label', `和鉴宝精灵「${name}」互动，双击打开对话`);
 }
 
 function setAction(action: FairyAction): void {

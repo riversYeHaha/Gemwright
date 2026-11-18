@@ -72,7 +72,7 @@
 
 > 截图是 `npm run fairy` 生成的 Lux3D 精灵：文生 3D → 数字人自动绑骨 → 6 个动作重定向；只有未配置 Key / 生成失败时才会退回程序化兜底。
 
-- **常驻右下角**：只在穿越 / 集市 / 验货 / 基地出现；在集市点它会唤出精灵面板（面板打开时它让位给侧栏），其它屏幕点它只说句话。
+- **常驻右下角**：只在穿越 / 集市 / 验货 / 基地出现；**单击**它说句话，**双击**它在集市唤出精灵面板（面板打开时它让位给侧栏，点面板里的「关闭」回来）。
 - **六套动作**：`Idle` / `Talk` / `Think` / `Happy` / `Sad` / `Alert`，由运行时状态自动匹配，交叉淡入。
 - **偶尔自言自语**：12–24 秒一句，台词来自本地静态池（会结合世界、额度、教学关、资金语境），**不调用 LLM**，也绝不包含单件真伪 / 价格。
 - **Lux3D 生成**：`npm run fairy` 调三次 Lux3D 官方异步接口：文生 3D → 数字人自动绑骨 → 6 个动作重定向（combined），最终下载一个带 skin 与 6 个 AnimationClip 的 GLB。
@@ -157,7 +157,7 @@ npm run fairy -- --region global  # 国际 Key
 | 精灵动画 | **Lux3D 文生 3D + 自动绑骨 + 动作重定向 + AnimationMixer / OffscreenCanvas Worker** | 主路径是带 skin 的 humanoid + 6 个 AnimationClip；兜底为 12 骨程序化骨架；渲染在 Worker，不卡主线程 |
 | 校验 | **Zod 4** | schema 失败信息直接回灌 LLM 做定向重试 |
 | 存储 | **localStorage + IndexedDB** | Key / 存档 / 续玩快照走 localStorage；关卡 JSON 与 GLB blob 走 IndexedDB |
-| 测试 | **Vitest 5 + happy-dom** | 22 个测试文件 / 100 个用例 |
+| 测试 | **Vitest 5 + happy-dom** | 22 个测试文件 / 101 个用例 |
 | 工程化 | **ESLint 10（flat config）+ Prettier 3** | `npm run verify` 串起 typecheck → lint → test → build |
 | 样式 | **原生 CSS + 设计 token** | 按 token / base / 组件 / 屏幕分层，无 Tailwind 构建链 |
 
@@ -223,7 +223,7 @@ Gemwright/
 │   │   ├── fairyCompanion.ts     右下角常驻精灵（单例 / 动作 / 自言自语）
 │   │   ├── fairyTalk.ts          动作匹配 + 静态台词池（纯函数）
 │   │   └── screens/              start / newgame / guide / settings / travel / market / inspect / base
-├── tests/                        22 个测试文件 / 100 个用例
+├── tests/                        22 个测试文件 / 101 个用例
 └── docs/
     ├── 珍宝猎人-方案v8-MVP.md     权威方案 v8.1
     ├── 开发指南.md                模块职责、数据流、不变量、扩展方式
@@ -265,7 +265,7 @@ public/models/manifest.json → loadLocalModel() → GLB Blob → TreasureViewer
 npm install
 npm run dev         # http://127.0.0.1:5173
 npm run build       # 产物 dist/，相对路径，可直接静态托管
-npm run test        # Vitest：100 个用例
+npm run test        # Vitest：101 个用例
 npm run lint        # ESLint（flat config）
 npm run format      # Prettier 写回 src/tests/配置
 npm run verify      # typecheck + lint + test + build（提交前一键）
@@ -385,7 +385,7 @@ npm run fairy       # 文生 3D → 绑骨 → 动作重定向 → public/models
 npm run verify
 # tsc --noEmit ✓（strict + noUnusedLocals）
 # eslint ✓（flat config）
-# vitest: 22 files / 100 tests ✓
+# vitest: 22 files / 101 tests ✓
 # vite build: dist/ ✓
 #   主包 index-*.js  ~220KB / gzip ~75KB
 #   3D chunk viewer-*.js ~651KB / gzip ~163KB（按需加载）

@@ -83,10 +83,6 @@ export function renderMarket(state: AppState): HTMLElement {
         'div',
         { class: 'market-hud__actions' },
         button('收摊结算', { variant: 'primary', onClick: () => closeMarket() }),
-        button(state.fairyOpen ? '收起精灵' : '唤出精灵', {
-          variant: 'ghost',
-          onClick: () => toggleFairyPanel(),
-        }),
       ),
     ),
     end.end && end.message ? h('p', { class: 'hint hint--warn', text: end.message }) : null,
@@ -318,7 +314,12 @@ function renderFairyDrawer(state: AppState, session: LevelSession): HTMLElement 
         h('h3', { text: `精灵「${level.fairy.name}」` }),
         h('p', { class: 'hint', text: level.fairy.persona }),
       ),
-      h('div', { class: 'fairy-drawer__quota', text: `${askLeft} 问` }),
+      h(
+        'div',
+        { class: 'fairy-drawer__head-actions' },
+        h('div', { class: 'fairy-drawer__quota', text: `${askLeft} 问` }),
+        button('关闭', { variant: 'subtle', onClick: () => toggleFairyPanel(false) }),
+      ),
     ),
     h('ul', { class: 'briefing' }, ...level.fairy.briefing.map((line) => h('li', { text: line }))),
     h(
@@ -363,7 +364,12 @@ function renderTutorialFairy(
         h('h3', { text: `精灵「${level.fairy.name}」` }),
         h('p', { class: 'hint', text: level.fairy.persona }),
       ),
-      h('div', { class: 'fairy-drawer__quota', text: `${askLeft} 问` }),
+      h(
+        'div',
+        { class: 'fairy-drawer__head-actions' },
+        h('div', { class: 'fairy-drawer__quota', text: `${askLeft} 问` }),
+        button('关闭', { variant: 'subtle', onClick: () => toggleFairyPanel(false) }),
+      ),
     ),
     h('ul', { class: 'briefing' }, ...level.fairy.briefing.map((line) => h('li', { text: line }))),
     h(

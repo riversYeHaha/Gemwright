@@ -47,7 +47,8 @@ describe('UI 渲染冒烟', () => {
     expect(el.querySelectorAll('.stall-card')).toHaveLength(5);
     expect(el.textContent).toContain('星穹之核');
     expect(el.textContent).toContain('议价额度');
-    expect(el.textContent).toContain('唤出精灵');
+    expect(el.textContent).not.toContain('唤出精灵');
+    expect(el.textContent).toContain('询问额度');
   });
 
   it('基地页逐件揭晓真伪与特征 diff', async () => {
