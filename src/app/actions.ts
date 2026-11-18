@@ -821,7 +821,7 @@ export function settleNow(): void {
     // 归档失败时保留关卡缓存，宁可多占空间也不默默丢文件。
     if (level.kind === 'generated') {
       if (archivedLevels.has(level.id)) {
-        void gameCache.deleteLevel(level.id);
+        void gameCache.deleteLevel(level.id).catch(() => {});
       } else {
         void archiveGeneratedLevel(level, state.models);
       }
@@ -846,6 +846,8 @@ export function settleNow(): void {
 /** 结算后的持久化：先写 library，成功后再释放 level/models 缓存。 */
 async function archiveGeneratedLevel(level: LevelJson, models: ModelMap): Promise<void> {
   try {
+    const hasModels = Object.values(models).some(Boolean);
+    if (!hasModels) return;
     await gameCache.archiveModels(level, models);
     archivedLevels.add(level.id);
     await gameCache.deleteLevel(level.id);
