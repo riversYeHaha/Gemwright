@@ -319,11 +319,13 @@ npm run fairy       # 文生 3D → 绑骨 → 动作重定向 → public/models
 3. 开始画面点「新游戏 → 正式开局」→ 选世界 → 穿越（首关约 2~3 分钟：世界观先到先展，5 件 GLB 并行布展）→ 开市。
 4. 中途刷新：开始画面「继续游戏」会变为可用，回到原处（教学关除外，教学关刷新从头再来）。
 
-部署：`npm run build` 后把 `dist/` 丢到任意静态托管即可；Key 只在玩家浏览器里，不经任何服务器。
+部署：`npm run build` 后把 `dist/` 丢到静态托管即可；但 **Lux3D 的 CORS 不会因为部署而消失**。本地开发已通过 Vite 同源代理转发 Lux3D；静态部署没有这层代理，若线上仍被 CORS 挡，需要在部署平台加同源 serverless 代理（见下一节）。
 
 ### Lux3D 报 CORS / Failed to fetch 时
 
-**先不要靠“部署”解决**：静态部署只换页面域名，不会给 Lux3D 的响应加 `Access-Control-Allow-Origin`；本地和线上受同样的浏览器 CORS 约束。Lux3D 的预检请求是放行的（`access-control-allow-origin: *`），但 **401 / 400 等错误响应没有 CORS 头**，所以浏览器会把“Key 无效 / 地区不对 / 积分不足”显示成跨域错误。
+**先不要靠“部署”解决**：静态部署只换页面域名，不会给 Lux3D 的响应加 `Access-Control-Allow-Origin`。不过 **本地 `npm run dev` 已经通过 Vite 同源代理 `/lux3d` 转发**，浏览器不会再被 CORS 卡；代理会暴露出真实的 401 / 400，例如 `invalid appKey`。
+
+Lux3D 的预检请求是放行的（`access-control-allow-origin: *`），但 **401 / 400 等错误响应没有 CORS 头**，所以浏览器会把“Key 无效 / 地区不对 / 积分不足”显示成跨域错误。
 
 先用 curl 看到真实 HTTP 状态（不要打印 Key）：
 
@@ -336,7 +338,7 @@ unset LUX3D_KEY
 ```
 
 - 返回 `401 {"m":"invalid appKey"}`：Key 无效、带上了 `Bearer `、或地区选错（国内 `api.aholo.cn` / 国际 `api.aholo.ai/global`）。
-- 返回 `200` 且带 `access-control-allow-origin`：浏览器可直连，检查是否硬刷新、Key 是否保存成功。
+- 返回 `200` 且带 `access-control-allow-origin`：浏览器可直连；本地 dev 代理也会正常转发。
 - 返回 `200` 但不带 CORS 头：静态部署也没用，需要在部署平台加一个同源 serverless 代理（如 `/api/lux3d/*` 转发），或换用支持浏览器直连的 Key/端点。
 
 > 当前国内端点已统一为 `https://api.aholo.cn`（旧网关 `api.aholo3d.cn` 仅作兼容）。`npm run fairy` 能成功生成，说明同一把 Key 至少能在服务端通过；浏览器仍失败时优先按上面的 curl 结果排查，而不是先部署。

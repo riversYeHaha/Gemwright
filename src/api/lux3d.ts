@@ -15,6 +15,19 @@ export const LUX3D_BASES: Record<Lux3DRegion, string> = {
   global: 'https://api.aholo.ai/global',
 };
 
+/**
+ * 开发时走 Vite 同源代理：浏览器请求 /lux3d/*，Vite 转发到官方端点。
+ * 这样 Lux3D 的 401/400 响应即使不带 CORS 头，浏览器也能读到真实错误；
+ * 生产构建没有 Vite，仍回落到官方端点（需要部署平台提供同源代理或 API 支持 CORS）。
+ * Vitest 的 MODE 是 test，不能走代理，否则单测 URL 会变成相对路径。
+ */
+const USE_DEV_PROXY = import.meta.env.DEV && import.meta.env.MODE !== 'test';
+
+export const LUX3D_REQUEST_BASES: Record<Lux3DRegion, string> = {
+  china: USE_DEV_PROXY ? '' : LUX3D_BASES.china,
+  global: USE_DEV_PROXY ? '/lux3d-global' : LUX3D_BASES.global,
+};
+
 export const LUX3D_STATUS_LABELS: Record<number, string> = {
   0: '已受理',
   1: '生成中',
@@ -124,7 +137,10 @@ export class Lux3DClient {
   constructor(options: Lux3DClientOptions) {
     if (!options.apiKey.trim()) throw new Lux3DError('缺少 Lux3D API Key');
     this.apiKey = options.apiKey.trim();
-    this.baseUrl = (options.baseUrl ?? LUX3D_BASES[options.region ?? 'china']).replace(/\/+$/, '');
+    this.baseUrl = (options.baseUrl ?? LUX3D_REQUEST_BASES[options.region ?? 'china']).replace(
+      /\/+$/,
+      '',
+    );
     // 同 DeepSeek：原生 fetch 不能以实例为 this 调用，必须绑定 globalThis。
     this.fetchImpl = (options.fetchImpl ?? globalThis.fetch).bind(globalThis);
     this.pollIntervalMs = options.pollIntervalMs ?? LUX3D_POLL_INTERVAL_MS;
