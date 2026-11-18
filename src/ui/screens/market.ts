@@ -1,23 +1,19 @@
 import {
-  askFairyQuestion,
-  askTutorialQuestion,
   closeMarket,
   dismissNotice,
   navigate,
   openInspect,
   setOfferOpen,
   submitOffer,
-  toggleFairyPanel,
 } from '../../app/actions';
 import type { AppState } from '../../app/store';
 import type { LevelSession } from '../../game/level';
-import { TUTORIAL_QA } from '../../game/tutorial/level';
 import { tutorialCoach } from '../tutorial';
-import type { FairyExchange, LevelJson, Stall } from '../../types/level';
-import { appendAll, button, fmt, h, typewrite } from '../dom';
+import type { LevelJson, Stall } from '../../types/level';
+import { appendAll, button, fmt, h } from '../dom';
 import { badge, emptyState, noticeBar, screenHead } from '../components';
 
-/** 集市：5 件珍宝的卡片、逐件议价、精灵侧栏（含免费简报与限次问答）。 */
+/** 集市：5 件珍宝的卡片、逐件议价；精灵对话浮窗由 fairyChat 全局挂载。 */
 export function renderMarket(state: AppState): HTMLElement {
   const body = h('div', { class: 'screen-body' });
   const session = state.session;
@@ -90,13 +86,12 @@ export function renderMarket(state: AppState): HTMLElement {
 
   const layout = h(
     'div',
-    { class: `market-layout${state.fairyOpen ? ' market-layout--with-fairy' : ''}` },
+    { class: 'market-layout' },
     h(
       'div',
       { class: 'stall-grid' },
       ...level.stalls.map((stall) => renderStallCard(stall, state, session)),
     ),
-    state.fairyOpen ? renderFairyDrawer(state, session) : null,
   );
   body.append(layout);
   return body;
@@ -256,159 +251,4 @@ function renderOfferPanel(stall: Stall, session: LevelSession): HTMLElement {
       button('算了', { variant: 'subtle', onClick: () => setOfferOpen(null) }),
     ),
   );
-}
-
-function renderFairyDrawer(state: AppState, session: LevelSession): HTMLElement {
-  const level = state.level as LevelJson;
-  const askLeft = Math.max(0, session.fairyQuota - session.state.askUsed);
-  if (level.kind === 'tutorial') return renderTutorialFairy(session, level, askLeft);
-  const input = h('input', {
-    class: 'input',
-    attrs: {
-      type: 'text',
-      maxlength: '50',
-      placeholder: '问点行内的，比如：这世界的仿品爱动哪里？',
-      'aria-label': '向鉴宝精灵提问',
-    },
-  });
-  const counter = h('span', { class: 'counter', text: '0/50' });
-  input.addEventListener('input', () => {
-    counter.textContent = `${[...input.value].length}/50`;
-  });
-  const submit = (): void => {
-    const value = input.value.trim();
-    if (!value || state.fairyBusy) return;
-    input.value = '';
-    counter.textContent = '0/50';
-    void askFairyQuestion(value);
-  };
-  const form = h(
-    'form',
-    {
-      class: 'ask-form',
-      on: {
-        submit: (event) => {
-          event.preventDefault();
-          submit();
-        },
-      },
-    },
-    input,
-    counter,
-    button('问', {
-      variant: 'primary',
-      disabled: askLeft <= 0 || state.fairyBusy,
-      onClick: submit,
-    }),
-  );
-
-  return h(
-    'aside',
-    { class: 'fairy-drawer' },
-    h(
-      'header',
-      { class: 'fairy-drawer__head' },
-      h(
-        'div',
-        null,
-        h('h3', { text: `精灵「${level.fairy.name}」` }),
-        h('p', { class: 'hint', text: level.fairy.persona }),
-      ),
-      h(
-        'div',
-        { class: 'fairy-drawer__head-actions' },
-        h('div', { class: 'fairy-drawer__quota', text: `${askLeft} 问` }),
-        button('关闭', { variant: 'subtle', onClick: () => toggleFairyPanel(false) }),
-      ),
-    ),
-    h('ul', { class: 'briefing' }, ...level.fairy.briefing.map((line) => h('li', { text: line }))),
-    h(
-      'div',
-      { class: 'fairy-log' },
-      session.state.fairyLog.length === 0
-        ? h('p', {
-            class: 'hint',
-            text: '它还没开口。它懂世界、懂创作人、懂流行手法——但不知道任何单件的真伪与价格。',
-          })
-        : null,
-      ...fairyLogEntries(level, session.state.fairyLog),
-    ),
-    h('p', {
-      class: 'hint',
-      text: `本关剩余 ${askLeft} 问（每问 ≤50 字，回答 ≤100 字）；问单件真伪会被它挡回来。`,
-    }),
-    form,
-    h('p', {
-      class: 'hint hint--warn',
-      text: '每问都是一次火力分配：好问题少走弯路，烂问题白白浪费额度。',
-    }),
-  );
-}
-
-/** 教学关卡的精灵：只用预设问答，展示"懂行 + 防火墙 + 额度"三件事。 */
-function renderTutorialFairy(
-  session: LevelSession,
-  level: LevelJson,
-  askLeft: number,
-): HTMLElement {
-  const asked = new Set(session.state.fairyLog.map((entry) => entry.question));
-  return h(
-    'aside',
-    { class: 'fairy-drawer' },
-    h(
-      'header',
-      { class: 'fairy-drawer__head' },
-      h(
-        'div',
-        null,
-        h('h3', { text: `精灵「${level.fairy.name}」` }),
-        h('p', { class: 'hint', text: level.fairy.persona }),
-      ),
-      h(
-        'div',
-        { class: 'fairy-drawer__head-actions' },
-        h('div', { class: 'fairy-drawer__quota', text: `${askLeft} 问` }),
-        button('关闭', { variant: 'subtle', onClick: () => toggleFairyPanel(false) }),
-      ),
-    ),
-    h('ul', { class: 'briefing' }, ...level.fairy.briefing.map((line) => h('li', { text: line }))),
-    h(
-      'div',
-      { class: 'fairy-questions' },
-      ...TUTORIAL_QA.map((qa) => {
-        const disabled = asked.has(qa.question) || askLeft <= 0;
-        return h('button', {
-          class: `fairy-question${qa.blocked ? ' fairy-question--blocked' : ''}`,
-          attrs: { type: 'button', ...(disabled ? { disabled: '' } : {}) },
-          on: { click: () => askTutorialQuestion(qa.id) },
-          text: qa.question,
-        });
-      }),
-    ),
-    h('div', { class: 'fairy-log' }, ...fairyLogEntries(level, session.state.fairyLog)),
-    h('p', {
-      class: 'hint',
-      text: '教学关卡不调用模型：精灵只回答这几句预设话术，但照常消耗询问额度。',
-    }),
-    h('p', { class: 'hint hint--warn', text: '注意那个被它挡回来的问题：它真的不知道单件真伪。' }),
-  );
-}
-
-/** 精灵对话渲染：最后一条回答用打字机（blocked 的挡回语直接显示）。 */
-function fairyLogEntries(level: LevelJson, log: FairyExchange[]): HTMLElement[] {
-  return log.map((entry, index) => {
-    const isLast = index === log.length - 1;
-    const full = `${level.fairy.name}：${entry.answer}`;
-    const answer = h('p', {
-      class: `fairy-log__a${entry.blocked ? ' fairy-log__a--blocked' : ''}`,
-      text: isLast && !entry.blocked ? '' : full,
-    });
-    if (isLast && !entry.blocked) typewrite(answer, full);
-    return h(
-      'div',
-      { class: 'fairy-log__entry' },
-      h('p', { class: 'fairy-log__q', text: `你：${entry.question}` }),
-      answer,
-    );
-  });
 }

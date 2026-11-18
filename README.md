@@ -72,7 +72,7 @@
 
 > 截图是 `npm run fairy` 生成的 Lux3D 精灵：文生 3D → 数字人自动绑骨 → 6 个动作重定向；只有未配置 Key / 生成失败时才会退回程序化兜底。
 
-- **常驻右下角**：只在穿越 / 集市 / 验货 / 基地出现；**单击**它说句话，**双击**它在集市唤出精灵面板（面板打开时它让位给侧栏，点面板里的「关闭」回来）。
+- **常驻右下角**：只在穿越 / 集市 / 验货 / 基地出现；**单击**它说句话，**双击**它在**当前页**弹出对话浮窗：集市里问行情，其它页面闲聊。浮窗不重排页面，精灵保持可见，点「关闭」或按 Esc 收起。
 - **六套动作**：`Idle` / `Talk` / `Think` / `Happy` / `Sad` / `Alert`，由运行时状态自动匹配，交叉淡入。
 - **偶尔自言自语**：12–24 秒一句，台词来自本地静态池（会结合世界、额度、教学关、资金语境），**不调用 LLM**，也绝不包含单件真伪 / 价格。
 - **Lux3D 生成**：`npm run fairy` 调三次 Lux3D 官方异步接口：文生 3D → 数字人自动绑骨 → 6 个动作重定向（combined），最终下载一个带 skin 与 6 个 AnimationClip 的 GLB。
@@ -157,7 +157,7 @@ npm run fairy -- --region global  # 国际 Key
 | 精灵动画 | **Lux3D 文生 3D + 自动绑骨 + 动作重定向 + AnimationMixer / OffscreenCanvas Worker** | 主路径是带 skin 的 humanoid + 6 个 AnimationClip；兜底为 12 骨程序化骨架；渲染在 Worker，不卡主线程 |
 | 校验 | **Zod 4** | schema 失败信息直接回灌 LLM 做定向重试 |
 | 存储 | **localStorage + IndexedDB** | Key / 存档 / 续玩快照走 localStorage；关卡 JSON 与 GLB blob 走 IndexedDB |
-| 测试 | **Vitest 5 + happy-dom** | 22 个测试文件 / 101 个用例 |
+| 测试 | **Vitest 5 + happy-dom** | 23 个测试文件 / 104 个用例 |
 | 工程化 | **ESLint 10（flat config）+ Prettier 3** | `npm run verify` 串起 typecheck → lint → test → build |
 | 样式 | **原生 CSS + 设计 token** | 按 token / base / 组件 / 屏幕分层，无 Tailwind 构建链 |
 
@@ -221,9 +221,10 @@ Gemwright/
 │   │   ├── components.ts         顶栏 / 面板 / 徽章 / 特征表 / 布展进度
 │   │   ├── tutorial.ts           教学六步引导（复用组件）
 │   │   ├── fairyCompanion.ts     右下角常驻精灵（单例 / 动作 / 自言自语）
+│   │   ├── fairyChat.ts          双击弹出的对话浮窗（问答 / 闲聊，不参与布局）
 │   │   ├── fairyTalk.ts          动作匹配 + 静态台词池（纯函数）
 │   │   └── screens/              start / newgame / guide / settings / travel / market / inspect / base
-├── tests/                        22 个测试文件 / 101 个用例
+├── tests/                        23 个测试文件 / 104 个用例
 └── docs/
     ├── 珍宝猎人-方案v8-MVP.md     权威方案 v8.1
     ├── 开发指南.md                模块职责、数据流、不变量、扩展方式
@@ -265,7 +266,7 @@ public/models/manifest.json → loadLocalModel() → GLB Blob → TreasureViewer
 npm install
 npm run dev         # http://127.0.0.1:5173
 npm run build       # 产物 dist/，相对路径，可直接静态托管
-npm run test        # Vitest：101 个用例
+npm run test        # Vitest：104 个用例
 npm run lint        # ESLint（flat config）
 npm run format      # Prettier 写回 src/tests/配置
 npm run verify      # typecheck + lint + test + build（提交前一键）
@@ -385,7 +386,7 @@ npm run fairy       # 文生 3D → 绑骨 → 动作重定向 → public/models
 npm run verify
 # tsc --noEmit ✓（strict + noUnusedLocals）
 # eslint ✓（flat config）
-# vitest: 22 files / 101 tests ✓
+# vitest: 23 files / 104 tests ✓
 # vite build: dist/ ✓
 #   主包 index-*.js  ~220KB / gzip ~75KB
 #   3D chunk viewer-*.js ~651KB / gzip ~163KB（按需加载）
@@ -393,7 +394,7 @@ npm run verify
 #   精灵 Worker fairyStage.worker-*.js ~677KB / gzip ~165KB（进游戏才加载）
 ```
 
-- 单测覆盖：价格 clamp、真伪覆写、难度整形、特征 diff、额度与回合、一致性兜底、结算数学、精灵防火墙/编号过滤、DeepSeek/Lux3D 请求契约、关卡重试、模型重试 / 取消、5 件并发、续玩快照、教学六步推导、教学存档隔离、预置模型加载/缓存/回退、开始画面背景生命周期、预置珍宝缩略图排序/回退、精灵骨架 / 动作匹配 / 静态台词 / 模型加载 / 常驻显隐、菜单页渲染、UI 渲染、启动冒烟。
+- 单测覆盖：价格 clamp、真伪覆写、难度整形、特征 diff、额度与回合、一致性兜底、结算数学、精灵防火墙/编号过滤、DeepSeek/Lux3D 请求契约、关卡重试、模型重试 / 取消、5 件并发、续玩快照、教学六步推导、教学存档隔离、预置模型加载/缓存/回退、开始画面背景生命周期、预置珍宝缩略图排序/回退、精灵骨架 / 动作匹配 / 静态台词 / 模型加载 / 常驻显隐 / 对话浮窗、菜单页渲染、UI 渲染、启动冒烟。
 - **端到端**（本机 Chrome + Playwright 驱动）：开始画面（黑洞 canvas 正常，桌面 / 390px 手机视口无横向溢出；7 件预置 GLB 在 Worker 中渐进替换兜底图形，离开开始页立即停止后续请求，主线程最长任务 ~200ms）→ 游戏说明 → 新游戏 → 教学关卡 → 问精灵（正常 + 防火墙挡回）→ 两件验货（WebGL canvas 正常，7 颗 / 6 颗可数）→ 砍价 320/300 → 自动收摊 → 基地 diff → 结算 → 教学完成 → 回开始画面（显示"教学已通关"）→ 演示关卡开市 → **刷新 → 开始画面「继续游戏」→ 回到集市**。控制台 0 error，教学与演示全程 **0 外部请求**；开始画面 ↔ 说明页往返 40 次后 JS 堆稳定、DOM 仅 1 块 canvas；陪伴精灵在 Worker 中渲染，进入游戏时主线程最长任务 ~220ms，自言自语与“挡回 → Sad”动作均实测。**Lux3D 精灵脚本的 HTTP 调用链用本地 mock 验证过**（含带 skin 的 GLB 加载与 6 clip 播放）；真实 Lux3D 生成需要你的 Key。
 - **未验证**：真实 DeepSeek / Lux3D Key 的在线调用（本轮无 Key）。预置模型链路已用一份合成 GLB 在浏览器验证「manifest → GLB → Three.js」可加载；真实模型需你执行 `npm run models` 生成。Lux3D 精灵脚本用本地 mock 验证了「文生 3D → 绑骨 → 动作重定向 → 下载 → manifest」全链路，并用带 skin / 6 clip 的测试 GLB 验证运行时；真实 humanoid 绑骨效果需你执行 `npm run fairy` 核验。
 

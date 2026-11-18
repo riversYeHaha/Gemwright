@@ -7,7 +7,7 @@ import type { ModelMap } from '../store/cache';
 import { pickSeed, type WorldSeed } from '../game/seeds';
 import { DEFAULT_SETTINGS } from '../store/settings';
 
-/** 开始画面 / 新游戏 / 游戏说明 / 设置 / 穿越 / 集市（含精灵侧栏）/ 验货 / 基地。 */
+/** 开始画面 / 新游戏 / 游戏说明 / 设置 / 穿越 / 集市（含精灵对话）/ 验货 / 基地。 */
 export type ScreenName =
   'start' | 'newgame' | 'guide' | 'settings' | 'travel' | 'market' | 'inspect' | 'base';
 

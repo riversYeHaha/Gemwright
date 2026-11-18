@@ -10,6 +10,7 @@ import { renderStart } from '../ui/screens/start';
 import { renderTravel } from '../ui/screens/travel';
 import { disposeStartBackdrop } from '../render/startBackdrop';
 import { updateFairyCompanion } from '../ui/fairyCompanion';
+import { updateFairyChat } from '../ui/fairyChat';
 import { topbar } from '../ui/components';
 import { h } from '../ui/dom';
 
@@ -44,6 +45,7 @@ export function initApp(root: HTMLElement): void {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     // 右下角精灵是固定层：由单例持有，不随整屏 replaceChildren 重建。
     updateFairyCompanion(state);
+    updateFairyChat(state);
   };
 
   store.subscribe(render);

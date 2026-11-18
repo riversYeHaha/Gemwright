@@ -30,14 +30,6 @@ body.has-fairy .app {
   transform: none;
 }
 
-/* 集市精灵侧栏打开时，精灵已经在侧栏里，常驻形象先让位。 */
-.fairy-companion.is-docked {
-  visibility: hidden;
-  opacity: 0;
-  transform: translateY(10px);
-  pointer-events: none;
-}
-
 .fairy-companion__bubble {
   max-width: 255px;
   margin-right: 0.2rem;
@@ -259,5 +251,67 @@ body.has-fairy .app {
 
   .fairy-companion__orb {
     animation: none;
+  }
+}
+
+/* ---------- 精灵对话浮窗（不参与页面布局） ---------- */
+.fairy-chat {
+  position: fixed;
+  right: 1.1rem;
+  bottom: 19rem;
+  z-index: 45;
+  display: flex;
+  width: min(380px, calc(100vw - 2rem));
+  max-height: calc(100vh - 24rem);
+  filter: drop-shadow(0 24px 48px rgba(0, 0, 0, 0.55));
+  animation: fairy-chat-in 0.18s ease both;
+}
+
+.fairy-chat[hidden] {
+  display: none;
+}
+
+.fairy-chat .fairy-chat__panel {
+  position: static;
+  width: 100%;
+  max-height: 100%;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(20, 30, 38, 0.98), rgba(9, 14, 21, 0.98)),
+    radial-gradient(circle at 100% 0, rgba(94, 234, 212, 0.12), transparent 55%);
+  box-shadow:
+    0 0 0 1px rgba(94, 234, 212, 0.16) inset,
+    0 18px 42px -20px rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(14px);
+}
+
+.fairy-chat .briefing {
+  max-height: 6.8rem;
+  overflow: auto;
+}
+
+.fairy-chat .fairy-log {
+  max-height: none;
+  overflow: visible;
+}
+
+@keyframes fairy-chat-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .fairy-chat {
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 10.1rem;
+    width: auto;
+    max-height: calc(100vh - 15rem);
   }
 }

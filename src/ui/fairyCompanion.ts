@@ -8,7 +8,6 @@ import {
   fairyReaction,
   selfTalkLine,
   snapshotOf,
-  type FairyReaction,
   type FairySnapshot,
 } from './fairyTalk';
 
@@ -50,8 +49,6 @@ let currentState: AppState | null = null;
 let snapshot: FairySnapshot | null = null;
 let lastLevelId: string | null = null;
 let currentAction: FairyAction = 'idle';
-let docked = false;
-let pendingReaction: FairyReaction | null = null;
 
 let bubbleTimer = 0;
 let selfTalkTimer = 0;
@@ -77,24 +74,20 @@ export function mountFairyCompanion(): void {
     'button',
     {
       class: 'fairy-companion__stage',
-      attrs: { type: 'button', title: '单击说句话，双击唤出精灵面板' },
+      attrs: { type: 'button', title: '单击说句话，双击和我对话' },
       on: {
         click: () => {
           const state = currentState;
-          if (!state) return;
+          if (!state || state.fairyOpen) return;
           const now = performance.now();
           if (now - lastClickAt < DOUBLE_CLICK_MS) {
             lastClickAt = 0;
             clearTimeout(clickTimer);
             clickTimer = 0;
-            if (state.screen === 'market' && state.level && state.session) {
+            if (GAMEPLAY_SCREENS.has(state.screen) && state.level) {
               toggleFairyPanel(true);
             } else {
-              showBubble(
-                state.level ? selfTalkLine(state) : '先找到一座坊市，我才有热闹可看。',
-                'talk',
-                5200,
-              );
+              showBubble('先找到一座坊市，我才有热闹可看。', 'talk', 5200);
             }
             return;
           }
@@ -103,7 +96,7 @@ export function mountFairyCompanion(): void {
           clickTimer = window.setTimeout(() => {
             clickTimer = 0;
             const latest = currentState;
-            if (!visible || docked) return;
+            if (!visible) return;
             showBubble(
               latest?.level ? selfTalkLine(latest) : '先找到一座坊市，我才有热闹可看。',
               'talk',
@@ -147,7 +140,7 @@ function onPageVisibility(): void {
     root?.classList.remove('is-talking');
     return;
   }
-  if (!visible || docked) return;
+  if (!visible) return;
   stage?.setPaused(false);
   ensureSelfTalk();
 }
@@ -169,43 +162,21 @@ export function updateFairyCompanion(state: AppState): void {
 
   const next = snapshotOf(state);
   updateIdentity(state);
-  const nextDocked = state.screen === 'market' && state.fairyOpen;
-  if (nextDocked !== docked) {
-    docked = nextDocked;
-    root?.classList.toggle('is-docked', docked);
-    if (docked) {
-      pendingReaction = null;
-      clearTimeout(bubbleTimer);
-      clearTimeout(selfTalkTimer);
-      bubbleTimer = 0;
-      selfTalkTimer = 0;
-      bubble?.classList.remove('is-visible');
-      root?.classList.remove('is-talking');
-      if (stageTimer) {
-        clearTimeout(stageTimer);
-        stageTimer = 0;
-        stageLoading = false;
-      }
-      stage?.setPaused(true);
-    } else {
-      ensureStage();
-      stage?.setPaused(false);
-      const pending = pendingReaction;
-      pendingReaction = null;
-      if (pending?.line) showBubble(pending.line, pending.action);
-      else ensureSelfTalk();
-    }
-  }
-  if (docked) {
-    // 面板打开时精灵让位，但把反应攒着；关闭面板后再补一个动作 / 气泡。
-    const reaction = fairyReaction(snapshot, next);
-    if (reaction.line) pendingReaction = reaction;
-    snapshot = next;
-    return;
-  }
 
   const reaction = fairyReaction(snapshot, next);
   snapshot = next;
+
+  if (state.fairyOpen) {
+    // 对话浮窗打开时，常驻精灵只保留待机形象，不再弹气泡 / 自言自语。
+    clearTimeout(bubbleTimer);
+    clearTimeout(selfTalkTimer);
+    bubbleTimer = 0;
+    selfTalkTimer = 0;
+    bubble?.classList.remove('is-visible');
+    root?.classList.remove('is-talking');
+    setAction('idle');
+    return;
+  }
 
   if (!wasVisible) {
     if (next.levelId && lastLevelId !== next.levelId) {
@@ -253,8 +224,6 @@ export function disposeFairyCompanion(): void {
   nameLabel = null;
   personaLabel = null;
   visible = false;
-  docked = false;
-  pendingReaction = null;
   currentState = null;
   snapshot = null;
   lastLevelId = null;
@@ -275,9 +244,7 @@ function showCompanion(): void {
 
 function hideCompanion(): void {
   visible = false;
-  docked = false;
-  pendingReaction = null;
-  root?.classList.remove('is-visible', 'is-docked', 'is-talking');
+  root?.classList.remove('is-visible', 'is-talking');
   document.body.classList.remove('has-fairy');
   bubble?.classList.remove('is-visible');
   clearTimeout(bubbleTimer);
@@ -383,8 +350,7 @@ function ensureStage(): void {
             onReady: () => {
               stageReady = true;
               root?.classList.add('is-ready');
-              if (docked) stage?.setPaused(true);
-              else stage?.play(currentAction);
+              stage?.play(currentAction);
             },
             onError: (error) => {
               // GLB 解析失败不算致命：舞台内部已经回退到程序化骨架。

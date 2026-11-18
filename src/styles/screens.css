@@ -155,10 +155,6 @@
   align-items: start;
 }
 
-.market-layout--with-fairy {
-  grid-template-columns: minmax(0, 1fr) 340px;
-}
-
 .stall-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -307,7 +303,7 @@
   cursor: pointer;
 }
 
-/* ---------- 精灵侧栏 ---------- */
+/* ---------- 精灵对话内容 ---------- */
 
 .fairy-drawer {
   position: sticky;
@@ -603,7 +599,6 @@
 /* ---------- 响应式 ---------- */
 
 @media (max-width: 980px) {
-  .market-layout--with-fairy,
   .inspect-layout {
     grid-template-columns: 1fr;
   }
